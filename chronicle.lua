@@ -40,7 +40,6 @@ local function on_unit_death(unit_id)
     local date = format_date(df.global.cur_year, df.global.cur_year_tick)
     add_entry(string.format('Death of %s on %s', name, date))
 end
-
 local function check_artifacts()
     local last_id = state.last_artifact_id
     for _, rec in ipairs(df.global.world.artifacts.all) do
@@ -76,6 +75,7 @@ local function do_enable()
     state.enabled = true
     eventful.onUnitDeath[GLOBAL_KEY] = on_unit_death
     persist_state()
+
     event_loop()
 end
 
@@ -122,7 +122,6 @@ if not dfhack.world.isFortressMode() or not dfhack.isMapLoaded() then
 end
 
 load_state()
-
 local args = {...}
 local cmd = args[1] or 'print'
 
