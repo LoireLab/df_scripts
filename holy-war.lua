@@ -128,14 +128,21 @@ local function main(...)
 
     for _, civ in ipairs(df.global.world.entities.all) do
         if civ.type == 0 and civ.id ~= pciv.id then
-            local status
+            local p_status
             for _, state in ipairs(pciv.relations.diplomacy.state) do
                 if state.group_id == civ.id then
-                    status = state.relation
+                    p_status = state.relation
                     break
                 end
             end
-            if status == 0 or status == nil then -- peace or unknown
+            local c_status
+            for _, state in ipairs(civ.relations.diplomacy.state) do
+                if state.group_id == pciv.id then
+                    c_status = state.relation
+                    break
+                end
+            end
+            if p_status ~= 1 or c_status ~= 1 then -- not already mutually at war
                 local civ_spheres = get_civ_spheres(civ)
                 local civ_hfs = get_civ_hists(civ)
                 if not share(player_spheres, civ_spheres) or
