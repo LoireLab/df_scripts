@@ -7,7 +7,9 @@ chronicle
 
 This tool automatically records notable events in a chronicle that is stored
 with your save. Unit deaths, artifact creation events, invasions, and yearly
-totals of crafted items are recorded.
+totals of crafted items are recorded. Artifact entries now include the full
+announcement text from the game, complete with item descriptions and special
+characters rendered just as they appear in the in-game logs.
 
 Usage
 -----
