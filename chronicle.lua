@@ -102,6 +102,12 @@ local function sanitize(text)
     str = str:gsub('≡([^≡]+)≡', '%1')
     str = str:gsub('☼([^☼]+)☼', '%1')
     str = str:gsub('«([^»]+)»', '%1')
+    -- remove any stray wrapper characters that might remain
+    str = str:gsub('[☼≡«»]', '')
+    -- strip any remaining characters outside of latin letters, digits, and
+    -- basic punctuation
+    str = str:gsub("[^A-Za-z0-9%s%.:,;!'\"%?()%+%-]", '')
+
     return str
 end
 
