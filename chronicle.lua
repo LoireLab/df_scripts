@@ -45,8 +45,8 @@ local function check_artifacts()
     for _, rec in ipairs(df.global.world.artifacts.all) do
         if rec.id > last_id then
             local name = dfhack.translation.translateName(rec.name)
-            -- artifact_record stores the creation tick in `year_tick`
-            local date = format_date(rec.year, rec.year_tick or 0)
+            -- artifact_record stores the creation tick in `season_tick`
+            local date = format_date(rec.year, rec.season_tick or 0)
             add_entry(string.format('Artifact "%s" created on %s', name, date))
             last_id = rec.id
         end
