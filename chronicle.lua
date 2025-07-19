@@ -1,9 +1,28 @@
 -- Chronicles fortress events: unit deaths, item creation, and invasions
 --@module = true
---@enable = true
 
 local eventful = require('plugins.eventful')
 local utils = require('utils')
+
+local help = [====[
+chronicle
+========
+
+Chronicles fortress events: unit deaths, item creation, and invasions
+
+Usage:
+	chronicle enable
+	chronicle disable 
+
+    chronicle [print] - prints 25 last recorded events 
+	chronicle print [number] - prints last [number] recorded events 
+	chronicle export - saves current chronicle to a txt file 
+	chronicle clear - erases current chronicle (DANGER)
+	
+	chronicle summary - shows how much items were produced per category in each year
+	
+	chronicle masterworks [enable|disable] - enables or disables logging of masterful crafted items events
+]====]
 
 local GLOBAL_KEY = 'chronicle'
 
@@ -257,7 +276,7 @@ local function on_invasion(invasion_id)
     add_entry(string.format('%s: Invasion started', date))
 end
 
--- capture artifact announcements verbatim from reports
+-- capture artifact announcements from reports
 local pending_artifact_report
 local function on_report(report_id)
     local rep = df.report.find(report_id)
@@ -298,8 +317,6 @@ local function on_report(report_id)
         add_entry(string.format('%s: %s', date, text))
     end
 end
--- legacy scanning functions for artifacts and invasions have been removed in
--- favor of event-based tracking. the main loop is no longer needed.
 
 local function do_enable()
     state.enabled = true
@@ -328,7 +345,6 @@ local function load_state()
 end
 
 -- State change hook
-
 dfhack.onStateChange[GLOBAL_KEY] = function(sc)
     if sc == SC_MAP_UNLOADED then
         eventful.onUnitDeath[GLOBAL_KEY] = nil
@@ -414,7 +430,7 @@ elseif cmd == 'summary' then
         print(string.format('Year %d: %s', year, table.concat(parts, ', ')))
     end
 else
-    print(dfhack.script_help())
+    print(help)
 end
 
 persist_state()
