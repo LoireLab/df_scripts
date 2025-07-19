@@ -119,7 +119,6 @@ if not dfhack.world.isFortressMode() or not dfhack.isMapLoaded() then
 end
 
 load_state()
-
 local args = {...}
 local cmd = args[1] or 'print'
 
