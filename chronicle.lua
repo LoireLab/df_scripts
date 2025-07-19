@@ -59,8 +59,8 @@ local function format_date(year, ticks)
 end
 
 local function sanitize(text)
-    -- convert game strings to console encoding and remove non-printable characters
-    local str = dfhack.df2console(text or '')
+    -- convert game strings to UTF-8 and remove non-printable characters
+    local str = dfhack.df2utf(text or '')
     -- strip control characters that may have leaked through
     str = str:gsub('[%z\1-\31]', '')
     return str
@@ -151,7 +151,7 @@ local pending_artifact_report
 local function on_report(report_id)
     local rep = df.report.find(report_id)
     if not rep or not rep.flags.announcement then return end
-    local text = dfhack.df2console(rep.text)
+    local text = dfhack.df2utf(rep.text)
     if pending_artifact_report then
         if text:find(' offers it to ') then
             local date = format_date(df.global.cur_year, df.global.cur_year_tick)
