@@ -40,15 +40,13 @@ local function on_unit_death(unit_id)
     local date = format_date(df.global.cur_year, df.global.cur_year_tick)
     add_entry(string.format('Death of %s on %s', name, date))
 end
-
-eventful.onUnitDeath[GLOBAL_KEY] = on_unit_death
-
 local function check_artifacts()
     local last_id = state.last_artifact_id
     for _, rec in ipairs(df.global.world.artifacts.all) do
         if rec.id > last_id then
             local name = dfhack.translation.translateName(rec.name)
-            local date = format_date(rec.year, rec.year_ticks or 0)
+            -- artifact_record stores the creation tick in `year_tick`
+            local date = format_date(rec.year, rec.year_tick or 0)
             add_entry(string.format('Artifact "%s" created on %s', name, date))
             last_id = rec.id
         end
@@ -75,11 +73,16 @@ end
 
 local function do_enable()
     state.enabled = true
+    eventful.onUnitDeath[GLOBAL_KEY] = on_unit_death
+    persist_state()
+
     event_loop()
 end
 
 local function do_disable()
     state.enabled = false
+    eventful.onUnitDeath[GLOBAL_KEY] = nil
+    persist_state()
 end
 
 local function load_state()
