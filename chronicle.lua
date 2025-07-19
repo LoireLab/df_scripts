@@ -105,8 +105,20 @@ dfhack.onStateChange[GLOBAL_KEY] = function(sc)
     end
 end
 
+if dfhack.isMapLoaded() and dfhack.world.isFortressMode() then
+    load_state()
+    if state.enabled then
+        do_enable()
+    end
+end
+
 if dfhack_flags.module then return end
 
+if not dfhack.world.isFortressMode() or not dfhack.isMapLoaded() then
+    qerror('chronicle requires a loaded fortress map')
+end
+
+load_state()
 local args = {...}
 local cmd = args[1] or 'print'
 
