@@ -168,17 +168,6 @@ local function describe_unit(unit)
     if unit.name.nickname ~= '' and not name:find(unit.name.nickname, 1, true) then
         name = name:gsub(unit.name.first_name, unit.name.first_name .. ' "' .. unit.name.nickname .. '"')
     end
-    local titles = {}
-    local prof = dfhack.units.getProfessionName(unit)
-    if prof and prof ~= '' then table.insert(titles, prof) end
-    for _, np in ipairs(dfhack.units.getNoblePositions(unit) or {}) do
-        if np.position and np.position.name and np.position.name[0] ~= '' then
-            table.insert(titles, np.position.name[0])
-        end
-    end
-    if #titles > 0 then
-        name = name .. ' (' .. table.concat(titles, ', ') .. ')'
-    end
     return name
 end
 
@@ -188,7 +177,6 @@ local function format_death_text(unit)
     str = str .. ' ' .. death_string(unit.counters.death_cause)
     local incident = df.incident.find(unit.counters.death_id)
     if incident then
-        str = str .. (' in year %d'):format(incident.event_year)
         if incident.criminal then
             local killer = df.unit.find(incident.criminal)
             if killer then
@@ -283,7 +271,7 @@ local function on_report(report_id)
     if not rep or not rep.flags.announcement then return end
     local text = sanitize(rep.text)
     if pending_artifact_report then
-        if text:find(' offers it to ') then
+        if text:find(' offers it to ') or text:find(' claims it ') then
             local date = format_date(df.global.cur_year, df.global.cur_year_tick)
             add_entry(string.format('%s: %s %s', date, pending_artifact_report, text))
             pending_artifact_report = nil
@@ -305,24 +293,44 @@ local function on_report(report_id)
         return
     end
 
-    -- other notable announcements
     local date = format_date(df.global.cur_year, df.global.cur_year_tick)
-    if text:find('The enemy have come') then
-        add_entry(string.format('%s: %s', date, text))
-    elseif text:find(' has bestowed the name ') then
-        add_entry(string.format('%s: %s', date, text))
-    elseif text:find(' has been found dead') then
-        add_entry(string.format('%s: %s', date, text))
-    elseif text:find('Mission Report') then
-        add_entry(string.format('%s: %s', date, text))
+    local msg = transform_notification(text)
+
+    if msg:find('The enemy have come') then
+        add_entry(string.format('%s: %s', date, msg))
+    elseif msg:find(' has bestowed the name ') then
+        add_entry(string.format('%s: %s', date, msg))
+    elseif msg:find(' has been found dead') then
+        add_entry(string.format('%s: %s', date, msg))
+    elseif msg:find('Dwarves have ') then
+        add_entry(string.format('%s: %s', date, msg))
+    elseif msg:find(' has come') then
+        add_entry(string.format('%s: %s', date, msg))
+	elseif msg:find(' upon you') then
+        add_entry(string.format('%s: %s', date, msg))
+	elseif msg:find('It is ') then
+        add_entry(string.format('%s: %s', date, msg))
     end
+end
+
+local function transform_notification(text)
+    -- "You have " >> "Dwarves have "
+    if text:sub(1, 9) == "You have " then
+        text = "Dwarves have " .. text:sub(10)
+    end
+
+    -- "Now you will know why you fear the night." >> "Gods have mercy!"
+    text = text:gsub("Now you will know why you fear the night%.", "Gods have mercy!")
+
+    return text
 end
 
 local function do_enable()
     state.enabled = true
-    eventful.enableEvent(eventful.eventType.ITEM_CREATED, 1)
-    eventful.enableEvent(eventful.eventType.INVASION, 1)
-    eventful.enableEvent(eventful.eventType.REPORT, 1)
+    eventful.enableEvent(eventful.eventType.ITEM_CREATED, 10)
+    eventful.enableEvent(eventful.eventType.INVASION, 10)
+    eventful.enableEvent(eventful.eventType.REPORT, 10)
+	eventful.enableEvent(eventful.eventType.UNIT_DEATH, 10)
     eventful.onUnitDeath[GLOBAL_KEY] = on_unit_death
     eventful.onItemCreated[GLOBAL_KEY] = on_item_created
     eventful.onInvasion[GLOBAL_KEY] = on_invasion
