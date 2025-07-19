@@ -1,7 +1,8 @@
 -- Assign trinkets to citizens so they can satisfy the "Acquire Object" need.
 -- Derived from an old Bay12 forums script and updated for modern DFHack.
+--@module = true
 
-local HELP = [=[
+local help = [=[
 need-acquire
 ============
 Assign trinkets to citizens who have a strong "Acquire Object" need.
@@ -18,19 +19,9 @@ Options:
 local utils = require('utils')
 
 local valid_args = utils.invert{'help', 't'}
-local args = utils.processArgs({...}, valid_args)
 
 local ACQUIRE_NEED_ID = df.need_type.AcquireObject
 local acquire_threshold = -3000
-
-if args.help then
-    print(HELP)
-    return
-end
-
-if args.t then
-    acquire_threshold = -tonumber(args.t)
-end
 
 local function get_citizens()
     local result = {}
@@ -96,5 +87,19 @@ local function give_items()
     end
 end
 
-give_items()
+local function main(args)
+    args = utils.processArgs(args, valid_args)
+    if args.help then
+        print(help)
+        return
+    end
+    if args.t then
+        acquire_threshold = -tonumber(args.t)
+    end
+    give_items()
+end
+
+if not dfhack_flags.module then
+    main({...})
+end
 

@@ -21,7 +21,7 @@ Usage
 
 ::
 
-    holy-war [--dry-run]
+   holy-war [--dry-run]
 
 When run without options, wars are declared immediately on all
 qualifying civilizations and an announcement is displayed.  With
@@ -30,3 +30,17 @@ affected without actually changing diplomacy. Each message also notes
 whether the conflict arises from disjoint spheres of influence or a
 religious persecution grudge and lists the conflicting spheres when
 appropriate.
+
+Examples
+--------
+
+``holy-war``
+    Immediately declare war on all qualifying civilizations.
+``holy-war --dry-run``
+    Show which civilizations would be targeted without changing diplomacy.
+
+Options
+-------
+
+``--dry-run``
+    List potential targets without declaring war.
