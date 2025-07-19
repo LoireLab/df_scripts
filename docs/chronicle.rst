@@ -2,12 +2,11 @@ chronicle
 =========
 
 .. dfhack-tool::
-    :summary: Record fortress events like deaths. Artifact and invasion tracking disabled.
+    :summary: Record fortress events like deaths, artifacts, and invasions.
     :tags: fort gameplay
 
 This tool automatically records notable events in a chronicle that is stored
-with your save. Currently only unit deaths are recorded since artifact and
-invasion tracking has been disabled due to performance issues.
+with your save. Unit deaths, artifact creation, and invasions are recorded.
 
 Usage
 -----
