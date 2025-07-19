@@ -59,8 +59,8 @@ local function format_date(year, ticks)
 end
 
 local function sanitize(text)
-    -- convert game strings to utf8 and remove non-printable characters
-    local str = dfhack.df2utf(text or '')
+    -- convert game strings to console encoding and remove non-printable characters
+    local str = dfhack.df2console(text or '')
     -- strip control characters that may have leaked through
     str = str:gsub('[%z\1-\31]', '')
     return str
@@ -122,11 +122,10 @@ local function on_item_created(item_id)
     if item.flags.artifact then
         local gref = dfhack.items.getGeneralRef(item, df.general_ref_type.IS_ARTIFACT)
         local rec = gref and df.artifact_record.find(gref.artifact_id) or nil
-        local name = rec and dfhack.translation.translateName(rec.name) or 'unknown artifact'
         if rec and rec.id > state.last_artifact_id then
             state.last_artifact_id = rec.id
         end
-        add_entry(string.format('%s: Artifact "%s" created', date, name))
+        -- artifact announcements are captured via REPORT events
         return
     end
 
@@ -146,6 +145,29 @@ local function on_invasion(invasion_id)
     local date = format_date(df.global.cur_year, df.global.cur_year_tick)
     add_entry(string.format('%s: Invasion started', date))
 end
+
+-- capture artifact announcements verbatim from reports
+local pending_artifact_report
+local function on_report(report_id)
+    local rep = df.report.find(report_id)
+    if not rep or not rep.flags.announcement then return end
+    local text = dfhack.df2console(rep.text)
+    if pending_artifact_report then
+        if text:find(' offers it to ') then
+            local date = format_date(df.global.cur_year, df.global.cur_year_tick)
+            add_entry(string.format('%s: %s %s', date, pending_artifact_report, text))
+            pending_artifact_report = nil
+            return
+        else
+            local date = format_date(df.global.cur_year, df.global.cur_year_tick)
+            add_entry(string.format('%s: %s', date, pending_artifact_report))
+            pending_artifact_report = nil
+        end
+    end
+    if text:find(' has created ') then
+        pending_artifact_report = text
+    end
+end
 -- legacy scanning functions for artifacts and invasions have been removed in
 -- favor of event-based tracking. the main loop is no longer needed.
 
@@ -153,9 +175,11 @@ local function do_enable()
     state.enabled = true
     eventful.enableEvent(eventful.eventType.ITEM_CREATED, 1)
     eventful.enableEvent(eventful.eventType.INVASION, 1)
+    eventful.enableEvent(eventful.eventType.REPORT, 1)
     eventful.onUnitDeath[GLOBAL_KEY] = on_unit_death
     eventful.onItemCreated[GLOBAL_KEY] = on_item_created
     eventful.onInvasion[GLOBAL_KEY] = on_invasion
+    eventful.onReport[GLOBAL_KEY] = on_report
     persist_state()
 end
 
@@ -164,6 +188,7 @@ local function do_disable()
     eventful.onUnitDeath[GLOBAL_KEY] = nil
     eventful.onItemCreated[GLOBAL_KEY] = nil
     eventful.onInvasion[GLOBAL_KEY] = nil
+    eventful.onReport[GLOBAL_KEY] = nil
     persist_state()
 end
 
@@ -179,6 +204,7 @@ dfhack.onStateChange[GLOBAL_KEY] = function(sc)
         eventful.onUnitDeath[GLOBAL_KEY] = nil
         eventful.onItemCreated[GLOBAL_KEY] = nil
         eventful.onInvasion[GLOBAL_KEY] = nil
+        eventful.onReport[GLOBAL_KEY] = nil
         state.enabled = false
         return
     end
