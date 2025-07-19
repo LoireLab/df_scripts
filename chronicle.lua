@@ -12,6 +12,7 @@ local function get_default_state()
         entries = {},
         last_artifact_id = -1,
         known_invasions = {},
+        item_counts = {}, -- item creation summary per year
     }
 end
 
@@ -70,6 +71,40 @@ local function add_entry(text)
     persist_state()
 end
 
+local CATEGORY_MAP = {
+    -- food and food-related
+    DRINK='food', DRINK2='food', FOOD='food', MEAT='food', FISH='food',
+    FISH_RAW='food', PLANT='food', PLANT_GROWTH='food', SEEDS='food',
+    EGG='food', CHEESE='food', POWDER_MISC='food', LIQUID_MISC='food',
+    GLOB='food',
+    -- weapons and defense
+    WEAPON='weapons', TRAPCOMP='weapons',
+    AMMO='ammo', SIEGEAMMO='ammo',
+    ARMOR='armor', PANTS='armor', HELM='armor', GLOVES='armor',
+    SHOES='armor', SHIELD='armor', QUIVER='armor',
+    -- materials
+    WOOD='wood', BOULDER='stone', ROCK='stone', ROUGH='gems', SMALLGEM='gems',
+    BAR='bars_blocks', BLOCKS='bars_blocks',
+    -- misc
+    COIN='coins',
+    -- finished goods and furniture
+    FIGURINE='finished_goods', AMULET='finished_goods', SCEPTER='finished_goods',
+    CROWN='finished_goods', RING='finished_goods', EARRING='finished_goods',
+    BRACELET='finished_goods', CRAFTS='finished_goods', TOY='finished_goods',
+    TOOL='finished_goods', GOBLET='finished_goods', FLASK='finished_goods',
+    BOX='furniture', BARREL='furniture', BED='furniture', CHAIR='furniture',
+    TABLE='furniture', DOOR='furniture', WINDOW='furniture', BIN='furniture',
+}
+
+local IGNORE_TYPES = {
+    CORPSE=true, CORPSEPIECE=true, REMAINS=true,
+}
+
+local function get_category(item)
+    local t = df.item_type[item:getType()]
+    return CATEGORY_MAP[t] or 'other'
+end
+
 local function on_unit_death(unit_id)
     local unit = df.unit.find(unit_id)
     if not unit then return end
@@ -92,10 +127,17 @@ local function on_item_created(item_id)
             state.last_artifact_id = rec.id
         end
         add_entry(string.format('%s: Artifact "%s" created', date, name))
-    else
-        local desc = dfhack.items.getDescription(item, 0, true)
-        add_entry(string.format('%s: Item "%s" created', date, desc))
+        return
     end
+
+    local type_name = df.item_type[item:getType()]
+    if IGNORE_TYPES[type_name] then return end
+
+    local year = df.global.cur_year
+    local category = get_category(item)
+    state.item_counts[year] = state.item_counts[year] or {}
+    state.item_counts[year][category] = (state.item_counts[year][category] or 0) + 1
+    persist_state()
 end
 
 local function on_invasion(invasion_id)
@@ -183,6 +225,23 @@ elseif cmd == 'print' then
         for i = start_idx, #state.entries do
             print(state.entries[i])
         end
+    end
+elseif cmd == 'summary' then
+    local years = {}
+    for year in pairs(state.item_counts) do table.insert(years, year) end
+    table.sort(years)
+    if #years == 0 then
+        print('No item creation records.')
+        return
+    end
+    for _,year in ipairs(years) do
+        local counts = state.item_counts[year]
+        local parts = {}
+        for cat,count in pairs(counts) do
+            table.insert(parts, string.format('%d %s', count, cat))
+        end
+        table.sort(parts)
+        print(string.format('Year %d: %s', year, table.concat(parts, ', ')))
     end
 else
     print(dfhack.script_help())

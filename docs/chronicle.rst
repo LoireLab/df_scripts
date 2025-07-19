@@ -6,8 +6,8 @@ chronicle
     :tags: fort gameplay
 
 This tool automatically records notable events in a chronicle that is stored
-with your save. Unit deaths, all item creation events, and invasions are
-recorded.
+with your save. Unit deaths, artifact creation events, invasions, and yearly
+totals of crafted items are recorded.
 
 Usage
 -----
@@ -17,6 +17,7 @@ Usage
     chronicle enable
     chronicle disable
     chronicle print [count]
+    chronicle summary
     chronicle clear
 
 ``chronicle enable``
@@ -27,5 +28,7 @@ Usage
     Print the most recent recorded events. Takes an optional ``count``
     argument (default ``25``) that specifies how many events to show. Prints
     a notice if the chronicle is empty.
+``chronicle summary``
+    Show yearly totals of created items by category (non-artifact items only).
 ``chronicle clear``
     Delete the chronicle.
