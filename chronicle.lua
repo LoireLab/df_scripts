@@ -13,6 +13,7 @@ local function get_default_state()
         last_artifact_id = -1,
         known_invasions = {},
         item_counts = {}, -- item creation summary per year
+        log_masterworks = true, -- capture "masterpiece" announcements
     }
 end
 
@@ -58,17 +59,114 @@ local function format_date(year, ticks)
     return string.format('%s %s, %s of Year %d', ordinal(day), month_name, season, year)
 end
 
+local function transliterate(str)
+    -- replace unicode punctuation with ASCII equivalents
+    str = str:gsub('[\226\128\152\226\128\153]', "'") -- single quotes
+    str = str:gsub('[\226\128\156\226\128\157]', '"') -- double quotes
+    str = str:gsub('\226\128\147', '-') -- en dash
+    str = str:gsub('\226\128\148', '-') -- em dash
+    str = str:gsub('\226\128\166', '...') -- ellipsis
+
+    local accent_map = {
+        ['á']='a', ['à']='a', ['ä']='a', ['â']='a', ['ã']='a', ['å']='a',
+        ['Á']='A', ['À']='A', ['Ä']='A', ['Â']='A', ['Ã']='A', ['Å']='A',
+        ['é']='e', ['è']='e', ['ë']='e', ['ê']='e',
+        ['É']='E', ['È']='E', ['Ë']='E', ['Ê']='E',
+        ['í']='i', ['ì']='i', ['ï']='i', ['î']='i',
+        ['Í']='I', ['Ì']='I', ['Ï']='I', ['Î']='I',
+        ['ó']='o', ['ò']='o', ['ö']='o', ['ô']='o', ['õ']='o',
+        ['Ó']='O', ['Ò']='O', ['Ö']='O', ['Ô']='O', ['Õ']='O',
+        ['ú']='u', ['ù']='u', ['ü']='u', ['û']='u',
+        ['Ú']='U', ['Ù']='U', ['Ü']='U', ['Û']='U',
+        ['ç']='c', ['Ç']='C', ['ñ']='n', ['Ñ']='N', ['ß']='ss',
+        ['Æ']='AE', ['æ']='ae', ['Ø']='O', ['ø']='o',
+        ['Þ']='Th', ['þ']='th', ['Ð']='Dh', ['ð']='dh',
+    }
+    for k,v in pairs(accent_map) do
+        str = str:gsub(k, v)
+    end
+    return str
+end
+
 local function sanitize(text)
-    -- convert game strings to console encoding and remove non-printable characters
-    local str = dfhack.df2console(text or '')
+    -- convert game strings to UTF-8 and remove non-printable characters
+    local str = dfhack.df2utf(text or '')
     -- strip control characters that may have leaked through
     str = str:gsub('[%z\1-\31]', '')
+    str = transliterate(str)
     return str
 end
 
 local function add_entry(text)
     table.insert(state.entries, sanitize(text))
     persist_state()
+end
+
+local function export_chronicle(path)
+    path = path or (dfhack.getSavePath() .. '/chronicle.txt')
+    local ok, f = pcall(io.open, path, 'w')
+    if not ok or not f then
+        qerror('Cannot open file for writing: ' .. path)
+    end
+    for _,entry in ipairs(state.entries) do
+        f:write(entry, '\n')
+    end
+    f:close()
+    print('Chronicle written to: ' .. path)
+end
+
+local DEATH_TYPES = reqscript('gui/unit-info-viewer').DEATH_TYPES
+
+local function trim(str)
+    return str:gsub('^%s+', ''):gsub('%s+$', '')
+end
+
+local function get_race_name(race_id)
+    return df.creature_raw.find(race_id).name[0]
+end
+
+local function death_string(cause)
+    if cause == -1 then return 'died' end
+    return trim(DEATH_TYPES[cause] or 'died')
+end
+
+local function describe_unit(unit)
+    local name = dfhack.units.getReadableName(unit)
+    if unit.name.nickname ~= '' and not name:find(unit.name.nickname, 1, true) then
+        name = name:gsub(unit.name.first_name, unit.name.first_name .. ' "' .. unit.name.nickname .. '"')
+    end
+    local titles = {}
+    local prof = dfhack.units.getProfessionName(unit)
+    if prof and prof ~= '' then table.insert(titles, prof) end
+    for _, np in ipairs(dfhack.units.getNoblePositions(unit) or {}) do
+        if np.position and np.position.name and np.position.name[0] ~= '' then
+            table.insert(titles, np.position.name[0])
+        end
+    end
+    if #titles > 0 then
+        name = name .. ' (' .. table.concat(titles, ', ') .. ')'
+    end
+    return name
+end
+
+local function format_death_text(unit)
+    local str = unit.name.has_name and '' or 'The '
+    str = str .. describe_unit(unit)
+    str = str .. ' ' .. death_string(unit.counters.death_cause)
+    local incident = df.incident.find(unit.counters.death_id)
+    if incident then
+        str = str .. (' in year %d'):format(incident.event_year)
+        if incident.criminal then
+            local killer = df.unit.find(incident.criminal)
+            if killer then
+                str = str .. (', killed by the %s'):format(get_race_name(killer.race))
+                if killer.name.has_name then
+                    str = str .. (' %s'):format(dfhack.translation.translateName(dfhack.units.getVisibleName(killer)))
+                end
+            end
+        end
+    end
+    return str
 end
 
 local CATEGORY_MAP = {
@@ -108,9 +206,8 @@ end
 local function on_unit_death(unit_id)
     local unit = df.unit.find(unit_id)
     if not unit then return end
-    local name = dfhack.units.getReadableName(unit)
     local date = format_date(df.global.cur_year, df.global.cur_year_tick)
-    add_entry(string.format('%s: Death of %s', date, name))
+    add_entry(string.format('%s: %s', date, format_death_text(unit)))
 end
 
 local function on_item_created(item_id)
@@ -151,7 +248,7 @@ local pending_artifact_report
 local function on_report(report_id)
     local rep = df.report.find(report_id)
     if not rep or not rep.flags.announcement then return end
-    local text = dfhack.df2console(rep.text)
+    local text = sanitize(rep.text)
     if pending_artifact_report then
         if text:find(' offers it to ') then
             local date = format_date(df.global.cur_year, df.global.cur_year_tick)
@@ -166,6 +263,25 @@ local function on_report(report_id)
     end
     if text:find(' has created ') then
         pending_artifact_report = text
+        return
+    end
+
+    if state.log_masterworks and text:lower():find('has created a master') then
+        local date = format_date(df.global.cur_year, df.global.cur_year_tick)
+        add_entry(string.format('%s: %s', date, text))
+        return
+    end
+
+    -- other notable announcements
+    local date = format_date(df.global.cur_year, df.global.cur_year_tick)
+    if text:find('The enemy have come') then
+        add_entry(string.format('%s: %s', date, text))
+    elseif text:find(' has bestowed the name ') then
+        add_entry(string.format('%s: %s', date, text))
+    elseif text:find(' has been found dead') then
+        add_entry(string.format('%s: %s', date, text))
+    elseif text:find('Mission Report') then
+        add_entry(string.format('%s: %s', date, text))
     end
 end
 -- legacy scanning functions for artifacts and invasions have been removed in
@@ -242,6 +358,20 @@ elseif cmd == 'disable' then
 elseif cmd == 'clear' then
     state.entries = {}
     persist_state()
+elseif cmd == 'masterworks' then
+    local sub = args[2]
+    if sub == 'enable' then
+        state.log_masterworks = true
+    elseif sub == 'disable' then
+        state.log_masterworks = false
+    else
+        print(string.format('Masterwork logging is currently %s.',
+            state.log_masterworks and 'enabled' or 'disabled'))
+        return
+    end
+    persist_state()
+elseif cmd == 'export' then
+    export_chronicle(args[2])
 elseif cmd == 'print' then
     local count = tonumber(args[2]) or 25
     if #state.entries == 0 then
