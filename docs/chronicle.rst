@@ -45,3 +45,11 @@ Usage
 ``chronicle export``
     Write all recorded events to a text file. If ``filename`` is omitted, the
     output is saved as ``chronicle.txt`` in your save folder.
+
+Examples
+--------
+
+``chronicle print 10``
+    Show the 10 most recent chronicle entries.
+``chronicle summary``
+    Display yearly summaries of items created in the fort.

@@ -371,66 +371,69 @@ if dfhack.isMapLoaded() and dfhack.world.isFortressMode() then
     end
 end
 
-if dfhack_flags.module then return end
+local function main(args)
+    if not dfhack.world.isFortressMode() or not dfhack.isMapLoaded() then
+        qerror('chronicle requires a loaded fortress map')
+    end
 
-if not dfhack.world.isFortressMode() or not dfhack.isMapLoaded() then
-    qerror('chronicle requires a loaded fortress map')
+    load_state()
+    local cmd = args[1] or 'print'
+
+    if cmd == 'enable' then
+        do_enable()
+    elseif cmd == 'disable' then
+        do_disable()
+    elseif cmd == 'clear' then
+        state.entries = {}
+        persist_state()
+    elseif cmd == 'masterworks' then
+        local sub = args[2]
+        if sub == 'enable' then
+            state.log_masterworks = true
+        elseif sub == 'disable' then
+            state.log_masterworks = false
+        else
+            print(string.format('Masterwork logging is currently %s.',
+                state.log_masterworks and 'enabled' or 'disabled'))
+            return
+        end
+        persist_state()
+    elseif cmd == 'export' then
+        export_chronicle(args[2])
+    elseif cmd == 'print' then
+        local count = tonumber(args[2]) or 25
+        if #state.entries == 0 then
+            print('Chronicle is empty.')
+        else
+            local start_idx = math.max(1, #state.entries - count + 1)
+            for i = start_idx, #state.entries do
+                print(state.entries[i])
+            end
+        end
+    elseif cmd == 'summary' then
+        local years = {}
+        for year in pairs(state.item_counts) do table.insert(years, year) end
+        table.sort(years)
+        if #years == 0 then
+            print('No item creation records.')
+            return
+        end
+        for _,year in ipairs(years) do
+            local counts = state.item_counts[year]
+            local parts = {}
+            for cat,count in pairs(counts) do
+                table.insert(parts, string.format('%d %s', count, cat))
+            end
+            table.sort(parts)
+            print(string.format('Year %d: %s', year, table.concat(parts, ', ')))
+        end
+    else
+        print(help)
+    end
+
+    persist_state()
 end
 
-load_state()
-local args = {...}
-local cmd = args[1] or 'print'
-
-if cmd == 'enable' then
-    do_enable()
-elseif cmd == 'disable' then
-    do_disable()
-elseif cmd == 'clear' then
-    state.entries = {}
-    persist_state()
-elseif cmd == 'masterworks' then
-    local sub = args[2]
-    if sub == 'enable' then
-        state.log_masterworks = true
-    elseif sub == 'disable' then
-        state.log_masterworks = false
-    else
-        print(string.format('Masterwork logging is currently %s.',
-            state.log_masterworks and 'enabled' or 'disabled'))
-        return
-    end
-    persist_state()
-elseif cmd == 'export' then
-    export_chronicle(args[2])
-elseif cmd == 'print' then
-    local count = tonumber(args[2]) or 25
-    if #state.entries == 0 then
-        print('Chronicle is empty.')
-    else
-        local start_idx = math.max(1, #state.entries - count + 1)
-        for i = start_idx, #state.entries do
-            print(state.entries[i])
-        end
-    end
-elseif cmd == 'summary' then
-    local years = {}
-    for year in pairs(state.item_counts) do table.insert(years, year) end
-    table.sort(years)
-    if #years == 0 then
-        print('No item creation records.')
-        return
-    end
-    for _,year in ipairs(years) do
-        local counts = state.item_counts[year]
-        local parts = {}
-        for cat,count in pairs(counts) do
-            table.insert(parts, string.format('%d %s', count, cat))
-        end
-        table.sort(parts)
-        print(string.format('Year %d: %s', year, table.concat(parts, ', ')))
-    end
-else
-    print(help)
+if not dfhack_flags.module then
+    main({...})
 end
-
-persist_state()
