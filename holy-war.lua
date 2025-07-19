@@ -28,6 +28,15 @@ local function merge(dst, src)
     for k in pairs(src) do dst[k] = true end
 end
 
+local function spheres_to_str(spheres)
+    local names = {}
+    for sph in pairs(spheres) do
+        table.insert(names, df.sphere_type[sph])
+    end
+    table.sort(names)
+    return table.concat(names, ', ')
+end
+
 local function get_deity_spheres(hfid)
     local spheres = {}
     local hf = df.historical_figure.find(hfid)
@@ -145,15 +154,28 @@ local function main(...)
             if p_status ~= 1 or c_status ~= 1 then -- not already mutually at war
                 local civ_spheres = get_civ_spheres(civ)
                 local civ_hfs = get_civ_hists(civ)
-                if not share(player_spheres, civ_spheres) or
-                        has_religious_grudge(player_hfs, civ_hfs) then
+                local divine_conflict = not share(player_spheres, civ_spheres)
+                local persecution = has_religious_grudge(player_hfs, civ_hfs)
+                if divine_conflict or persecution then
                     local name = dfhack.translation.translateName(civ.name, true)
+                    local reason_parts = {}
+                    if divine_conflict then
+                        table.insert(reason_parts,
+                            ('conflicting spheres (%s vs %s)'):format(
+                                spheres_to_str(player_spheres),
+                                spheres_to_str(civ_spheres)))
+                    end
+                    if persecution then
+                        table.insert(reason_parts, 'religious persecution')
+                    end
+                    local reason = table.concat(reason_parts, ' and ')
                     if dry_run then
-                        print(('Would declare war on %s over divine conflict.'):format(name))
+                        print(('Would declare war on %s due to %s.'):format(name, reason))
                     else
                         change_relation(civ, 1) -- war
                         dfhack.gui.showAnnouncement(
-                            ('Religious persecution sparks war with %s!'):format(name),
+                            ('%s sparks war with %s!'):format(
+                                reason:gsub('^.', string.upper), name),
                             COLOR_RED, true)
                     end
                 end

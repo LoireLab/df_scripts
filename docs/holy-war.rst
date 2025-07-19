@@ -23,4 +23,7 @@ Usage
 When run without options, wars are declared immediately on all
 qualifying civilizations and an announcement is displayed.  With
 ``--dry-run``, the tool only reports which civilizations would be
-affected without actually changing diplomacy.
+affected without actually changing diplomacy. Each message also notes
+whether the conflict arises from disjoint spheres of influence or a
+religious persecution grudge and lists the conflicting spheres when
+appropriate.
