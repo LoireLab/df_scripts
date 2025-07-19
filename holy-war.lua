@@ -37,6 +37,14 @@ local function spheres_to_str(spheres)
     return table.concat(names, ', ')
 end
 
+local function diff(a, b)
+    local d = {}
+    for k in pairs(a) do
+        if not b[k] then d[k] = true end
+    end
+    return d
+end
+
 local function get_deity_spheres(hfid)
     local spheres = {}
     local hf = df.historical_figure.find(hfid)
@@ -154,16 +162,19 @@ local function main(...)
             if p_status ~= 1 or c_status ~= 1 then -- not already mutually at war
                 local civ_spheres = get_civ_spheres(civ)
                 local civ_hfs = get_civ_hists(civ)
-                local divine_conflict = not share(player_spheres, civ_spheres)
+                local divine_conflict = next(player_spheres) and next(civ_spheres)
+                    and not share(player_spheres, civ_spheres)
                 local persecution = has_religious_grudge(player_hfs, civ_hfs)
-                if divine_conflict or persecution then
+                if (divine_conflict or persecution) and civ.name.has_name then
                     local name = dfhack.translation.translateName(civ.name, true)
                     local reason_parts = {}
                     if divine_conflict then
+                        local p_diff = diff(player_spheres, civ_spheres)
+                        local c_diff = diff(civ_spheres, player_spheres)
                         table.insert(reason_parts,
                             ('conflicting spheres (%s vs %s)'):format(
-                                spheres_to_str(player_spheres),
-                                spheres_to_str(civ_spheres)))
+                                spheres_to_str(p_diff),
+                                spheres_to_str(c_diff)))
                     end
                     if persecution then
                         table.insert(reason_parts, 'religious persecution')

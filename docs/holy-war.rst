@@ -13,6 +13,9 @@ two peoples, the civilization is set to war. Both your stance toward
 the other civilization and their stance toward you are set to war,
 ensuring a mutual declaration.
 
+Civilizations without proper names are ignored, and the reported sphere
+lists contain only the spheres unique to each civilization.
+
 Usage
 -----
 
