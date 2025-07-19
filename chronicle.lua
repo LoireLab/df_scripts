@@ -21,15 +21,52 @@ local function persist_state()
     dfhack.persistent.saveSiteData(GLOBAL_KEY, state)
 end
 
+local months = {
+    'Granite', 'Slate', 'Felsite',
+    'Hematite', 'Malachite', 'Galena',
+    'Limestone', 'Sandstone', 'Timber',
+    'Moonstone', 'Opal', 'Obsidian',
+}
+
+local seasons = {
+    'Early Spring', 'Mid Spring', 'Late Spring',
+    'Early Summer', 'Mid Summer', 'Late Summer',
+    'Early Autumn', 'Mid Autumn', 'Late Autumn',
+    'Early Winter', 'Mid Winter', 'Late Winter',
+}
+
+local function ordinal(n)
+    local rem100 = n % 100
+    local rem10 = n % 10
+    local suffix = 'th'
+    if rem100 < 11 or rem100 > 13 then
+        if rem10 == 1 then suffix = 'st'
+        elseif rem10 == 2 then suffix = 'nd'
+        elseif rem10 == 3 then suffix = 'rd'
+        end
+    end
+    return ('%d%s'):format(n, suffix)
+end
+
 local function format_date(year, ticks)
-    local julian_day = math.floor(ticks / 1200) + 1
-    local month = math.floor(julian_day / 28) + 1
-    local day = julian_day % 28
-    return string.format('%03d-%02d-%02d', year, month, day)
+    local day_of_year = math.floor(ticks / 1200) + 1
+    local month = math.floor((day_of_year - 1) / 28) + 1
+    local day = ((day_of_year - 1) % 28) + 1
+    local month_name = months[month] or ('Month' .. tostring(month))
+    local season = seasons[month] or 'Unknown Season'
+    return string.format('%s %s, %s of Year %d', ordinal(day), month_name, season, year)
+end
+
+local function sanitize(text)
+    -- convert game strings to utf8 and remove non-printable characters
+    local str = dfhack.df2utf(text or '')
+    -- strip control characters that may have leaked through
+    str = str:gsub('[%z\1-\31]', '')
+    return str
 end
 
 local function add_entry(text)
-    table.insert(state.entries, text)
+    table.insert(state.entries, sanitize(text))
     persist_state()
 end
 
@@ -38,7 +75,7 @@ local function on_unit_death(unit_id)
     if not unit then return end
     local name = dfhack.units.getReadableName(unit)
     local date = format_date(df.global.cur_year, df.global.cur_year_tick)
-    add_entry(string.format('Death of %s on %s', name, date))
+    add_entry(string.format('%s: Death of %s', date, name))
 end
 
 local function on_item_created(item_id)
@@ -54,10 +91,10 @@ local function on_item_created(item_id)
         if rec and rec.id > state.last_artifact_id then
             state.last_artifact_id = rec.id
         end
-        add_entry(string.format('Artifact "%s" created on %s', name, date))
+        add_entry(string.format('%s: Artifact "%s" created', date, name))
     else
         local desc = dfhack.items.getDescription(item, 0, true)
-        add_entry(string.format('Item "%s" created on %s', desc, date))
+        add_entry(string.format('%s: Item "%s" created', date, desc))
     end
 end
 
@@ -65,7 +102,7 @@ local function on_invasion(invasion_id)
     if state.known_invasions[invasion_id] then return end
     state.known_invasions[invasion_id] = true
     local date = format_date(df.global.cur_year, df.global.cur_year_tick)
-    add_entry(string.format('Invasion started on %s', date))
+    add_entry(string.format('%s: Invasion started', date))
 end
 -- legacy scanning functions for artifacts and invasions have been removed in
 -- favor of event-based tracking. the main loop is no longer needed.
@@ -138,11 +175,13 @@ elseif cmd == 'clear' then
     state.entries = {}
     persist_state()
 elseif cmd == 'print' then
+    local count = tonumber(args[2]) or 25
     if #state.entries == 0 then
         print('Chronicle is empty.')
     else
-        for _, entry in ipairs(state.entries) do
-            print(entry)
+        local start_idx = math.max(1, #state.entries - count + 1)
+        for i = start_idx, #state.entries do
+            print(state.entries[i])
         end
     end
 else

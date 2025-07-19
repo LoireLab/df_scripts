@@ -16,7 +16,7 @@ Usage
 
     chronicle enable
     chronicle disable
-    chronicle print
+    chronicle print [count]
     chronicle clear
 
 ``chronicle enable``
@@ -24,6 +24,8 @@ Usage
 ``chronicle disable``
     Stop recording events.
 ``chronicle print``
-    Print all recorded events. Prints a notice if the chronicle is empty.
+    Print the most recent recorded events. Takes an optional ``count``
+    argument (default ``25``) that specifies how many events to show. Prints
+    a notice if the chronicle is empty.
 ``chronicle clear``
     Delete the chronicle.
