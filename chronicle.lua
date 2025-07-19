@@ -1,4 +1,4 @@
--- Chronicles fortress events (deaths, artifacts, invasions)
+-- Chronicles fortress events (currently only unit deaths)
 --@module = true
 --@enable = true
 
@@ -64,10 +64,10 @@ local function check_invasions()
     end
 end
 
+-- main loop; artifact and invasion tracking disabled to avoid scanning large
+-- data structures, which was causing hangs on some forts
 local function event_loop()
     if not state.enabled then return end
-    check_artifacts()
-    check_invasions()
     dfhack.timeout(1200, 'ticks', event_loop)
 end
 
