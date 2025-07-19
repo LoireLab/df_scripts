@@ -63,36 +63,8 @@ local function on_invasion(invasion_id)
     local date = format_date(df.global.cur_year, df.global.cur_year_tick)
     add_entry(string.format('Invasion started on %s', date))
 end
-local function check_artifacts()
-    local last_id = state.last_artifact_id
-    for _, rec in ipairs(df.global.world.artifacts.all) do
-        if rec.id > last_id then
-            local name = dfhack.translation.translateName(rec.name)
-            -- artifact_record stores the creation tick in `season_tick`
-            local date = format_date(rec.year, rec.season_tick or 0)
-            add_entry(string.format('Artifact "%s" created on %s', name, date))
-            last_id = rec.id
-        end
-    end
-    state.last_artifact_id = last_id
-end
-
-local function check_invasions()
-    for _, inv in ipairs(df.global.plotinfo.invasions.list) do
-        if inv.flags.active and not state.known_invasions[inv.id] then
-            state.known_invasions[inv.id] = true
-            local date = format_date(df.global.cur_year, df.global.cur_year_tick)
-            add_entry(string.format('Invasion started on %s', date))
-        end
-    end
-end
-
--- main loop; artifact and invasion tracking disabled to avoid scanning large
--- data structures, which was causing hangs on some forts
-local function event_loop()
-    if not state.enabled then return end
-    dfhack.timeout(1200, 'ticks', event_loop)
-end
+-- legacy scanning functions for artifacts and invasions have been removed in
+-- favor of event-based tracking. the main loop is no longer needed.
 
 local function do_enable()
     state.enabled = true
@@ -102,8 +74,6 @@ local function do_enable()
     eventful.onItemCreated[GLOBAL_KEY] = on_item_created
     eventful.onInvasion[GLOBAL_KEY] = on_invasion
     persist_state()
-
-    event_loop()
 end
 
 local function do_disable()
