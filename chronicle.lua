@@ -1,4 +1,4 @@
--- Chronicles fortress events: unit deaths, artifact creation, and invasions
+-- Chronicles fortress events: unit deaths, item creation, and invasions
 --@module = true
 --@enable = true
 
@@ -43,18 +43,22 @@ end
 
 local function on_item_created(item_id)
     local item = df.item.find(item_id)
-    if not item or not item.flags.artifact then return end
+    if not item then return end
 
-    local gref = dfhack.items.getGeneralRef(item, df.general_ref_type.IS_ARTIFACT)
-    local rec = gref and df.artifact_record.find(gref.artifact_id) or nil
-    if not rec then return end
+    local date = format_date(df.global.cur_year, df.global.cur_year_tick)
 
-    local name = dfhack.translation.translateName(rec.name)
-    local date = format_date(rec.year, rec.season_tick or 0)
-    if rec.id > state.last_artifact_id then
-        state.last_artifact_id = rec.id
+    if item.flags.artifact then
+        local gref = dfhack.items.getGeneralRef(item, df.general_ref_type.IS_ARTIFACT)
+        local rec = gref and df.artifact_record.find(gref.artifact_id) or nil
+        local name = rec and dfhack.translation.translateName(rec.name) or 'unknown artifact'
+        if rec and rec.id > state.last_artifact_id then
+            state.last_artifact_id = rec.id
+        end
+        add_entry(string.format('Artifact "%s" created on %s', name, date))
+    else
+        local desc = dfhack.items.getDescription(item, 0, true)
+        add_entry(string.format('Item "%s" created on %s', desc, date))
     end
-    add_entry(string.format('Artifact "%s" created on %s', name, date))
 end
 
 local function on_invasion(invasion_id)
@@ -134,8 +138,12 @@ elseif cmd == 'clear' then
     state.entries = {}
     persist_state()
 elseif cmd == 'print' then
-    for _, entry in ipairs(state.entries) do
-        print(entry)
+    if #state.entries == 0 then
+        print('Chronicle is empty.')
+    else
+        for _, entry in ipairs(state.entries) do
+            print(entry)
+        end
     end
 else
     print(dfhack.script_help())
