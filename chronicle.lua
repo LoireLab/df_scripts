@@ -94,6 +94,14 @@ local function sanitize(text)
     -- strip control characters that may have leaked through
     str = str:gsub('[%z\1-\31]', '')
     str = transliterate(str)
+    -- strip quality wrappers from item names
+    -- e.g. -item-, +item+, *item*, ≡item≡, ☼item☼, «item»
+    str = str:gsub('%-([^%-]+)%-', '%1')
+    str = str:gsub('%+([^%+]+)%+', '%1')
+    str = str:gsub('%*([^%*]+)%*', '%1')
+    str = str:gsub('≡([^≡]+)≡', '%1')
+    str = str:gsub('☼([^☼]+)☼', '%1')
+    str = str:gsub('«([^»]+)»', '%1')
     return str
 end
 
