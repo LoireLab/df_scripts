@@ -227,6 +227,7 @@ end
 local function on_unit_death(unit_id)
     local unit = df.unit.find(unit_id)
     if not unit then return end
+    if dfhack.units.isWildlife(unit) then return end
     local date = format_date(df.global.cur_year, df.global.cur_year_tick)
     add_entry(string.format('%s: %s', date, format_death_text(unit)))
 end
