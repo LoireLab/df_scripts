@@ -4,6 +4,9 @@
 local eventful = require('plugins.eventful')
 local utils = require('utils')
 
+-- ensure our random choices vary between runs
+math.randomseed(os.time())
+
 local help = [====[
 chronicle
 ========
@@ -19,10 +22,11 @@ Usage:
         chronicle long - prints the full chronicle
         chronicle export - saves current chronicle to a txt file
         chronicle clear - erases current chronicle (DANGER)
+        chronicle view - shows the full chronicle in a scrollable window
 
     chronicle summary - shows how much items were produced per category in each year
 
-    chronicle masterworks [enable|disable] - enables or disables logging of masterful crafted items events
+    chronicle masterworks [enable|disable] - enables or disables logging of masterwork creation announcements
 ]====]
 
 local GLOBAL_KEY = 'chronicle'
@@ -108,6 +112,10 @@ local function transliterate(str)
         str = str:gsub(k, v)
     end
     return str
+end
+
+local function escape_pattern(str)
+    return str:gsub('([%^%$%(%)%%%.%[%]%*%+%-%?])', '%%%1')
 end
 
 local function sanitize(text)
@@ -208,7 +216,8 @@ end
 local function describe_unit(unit)
     local name = dfhack.units.getReadableName(unit)
     if unit.name.nickname ~= '' and not name:find(unit.name.nickname, 1, true) then
-        name = name:gsub(unit.name.first_name, unit.name.first_name .. ' "' .. unit.name.nickname .. '"')
+        local pattern = escape_pattern(unit.name.first_name)
+        name = name:gsub(pattern, unit.name.first_name .. ' "' .. unit.name.nickname .. '"', 1)
     end
     return name
 end
@@ -316,8 +325,8 @@ local ANNOUNCEMENT_PATTERNS = {
     'you have ',
     ' has come',
     ' upon you',
-    'tt is ',
-	'is visiting',
+    ' it is ',
+    ' is visiting',
 }
 
 local function get_category(item)
@@ -394,15 +403,15 @@ local function on_report(report_id)
         add_entry(string.format('%s: %s', date, text))
         return
     end
-    
-	for _,pattern in ipairs(ANNOUNCEMENT_PATTERNS) do
+
+    for _,pattern in ipairs(ANNOUNCEMENT_PATTERNS) do
         if text:lower():find(pattern) then
-			local date = format_date(df.global.cur_year, df.global.cur_year_tick)
-			local msg = transform_notification(text)
+            local date = format_date(df.global.cur_year, df.global.cur_year_tick)
+            local msg = transform_notification(text)
             add_entry(string.format('%s: %s', date, msg))
             break
         end
-end
+    end
 end
 
 local function transform_notification(text)
