@@ -46,77 +46,64 @@ local function add_nearby_items(job)
         if it ~= target and not it.flags.in_job and it.flags.on_ground and it.pos.z == z and math.abs(it.pos.x - x) <= radius and math.abs(it.pos.y - y) <= radius then
             dfhack.job.attachJobItem(job, it, df.job_role_type.Hauled, -1, -1)
             count = count + 1
-            --if debug_enabled then
-           --     dfhack.gui.showAnnouncement(
-            --        ('multihaul: added %s to hauling job'):format(
-            --            dfhack.items.getDescription(it, 0)),
-           --         COLOR_CYAN)
-            --end
+            if debug_enabled then
+                dfhack.gui.showAnnouncement(
+                    ('multihaul: added %s to hauling job'):format(
+                        dfhack.items.getDescription(it, 0)),
+                    COLOR_CYAN)
+            end
             if count >= max_items then break end
         end
     end
-    --if debug_enabled and count > 0 then
-        --dfhack.gui.showAnnouncement(('multihaul: added %d item(s) nearby'):format(count),COLOR_CYAN)
-    --end
+    if debug_enabled and count > 0 then
+        dfhack.gui.showAnnouncement(('multihaul: added %d item(s) nearby'):format(count),COLOR_CYAN)
+    end
 end
 
 local function on_new_job(job)
-	if debug_enabled then
-        dfhack.gui.showAnnouncement('multihaul: on_new_job called', COLOR_GREEN)
-    end
 	if job.job_type ~= df.job_type.StoreItemInStockpile then return end
-	if debug_enabled then
-        dfhack.gui.showAnnouncement('multihaul: on_new_job called on StoreItemInStockpile', COLOR_GREEN)
-    end
     add_nearby_items(job)
-end
-
-local function on_job_completed(job)
-	if debug_enabled then
-        dfhack.gui.showAnnouncement('multihaul: on_job_completed called', COLOR_GREEN)
-    end
-	if job.job_type ~= df.job_type.StoreItemInStockpile or #job.items == 0 then return end
-	if debug_enabled then
-        dfhack.gui.showAnnouncement('multihaul: on_job_completed called on StoreItemInStockpile with job items', COLOR_GREEN)
-    end
-    local container
-    for _,jitem in ipairs(job.items) do
+	for _,jitem in ipairs(job.items) do
         if jitem.item and (dfhack.items.getCapacity(jitem.item)>0) then
             container = jitem.item
             break
         end
     end
-    if not container then return end
-	emptyContainer(container)
+    if not container then return 
+	else emptyContainedItems(container) 
+	end
 end
-	
-local function emptyContainer(container)
-    local items = dfhack.items.getContainedItems(container)
-    if #items > 0 then
-        dfhack.gui.showAnnouncement('Emptying ',COLOR_CYAN)
-        local pos = xyz2pos(dfhack.items.getPosition(container))
-        for _, item in ipairs(items) do
-            dfhack.items.moveToGround(item, pos)
+
+local function emptyContainedItems(wheelbarrow)
+    local items = dfhack.items.getContainedItems(wheelbarrow)
+    if #items == 0 then return end
+    e_count = e_count + 1
+    for _,item in ipairs(items) do
+        if not dryrun then
+            if item.flags.in_job then
+                local job_ref = dfhack.items.getSpecificRef(item, df.specific_ref_type.JOB)
+                if job_ref then
+                    dfhack.job.removeJob(job_ref.data.job)
+                end
             end
+            dfhack.items.moveToGround(item, wheelbarrow.pos)
         end
+        i_count = i_count + 1
     end
+end
 
 local function enable(state)
-	eventful.enableEvent(eventful.eventType.JOB_COMPLETED, 1)
     enabled = state
     if enabled then
         eventful.onJobInitiated[GLOBAL_KEY] = on_new_job
-        eventful.onJobCompleted[GLOBAL_KEY] = on_job_completed
     else
         eventful.onJobInitiated[GLOBAL_KEY] = nil
-        eventful.onJobCompleted[GLOBAL_KEY] = nil
     end
     persist_state()
 end
 
 if dfhack.internal.IN_TEST then
-    unit_test_hooks = {on_new_job=on_new_job, enable=enable,
-                       load_state=load_state, on_job_completed=on_job_completed}
+    unit_test_hooks = {on_new_job=on_new_job, enable=enable,  load_state=load_state}
 end
 
 -- state change handler
@@ -125,15 +112,12 @@ dfhack.onStateChange[GLOBAL_KEY] = function(sc)
     if sc == SC_MAP_UNLOADED then
         enabled = false
         eventful.onJobInitiated[GLOBAL_KEY] = nil
-        eventful.onJobCompleted[GLOBAL_KEY] = nil
         return
     end
     if sc == SC_MAP_LOADED then
         load_state()
         if enabled then
-			eventful.enableEvent(eventful.eventType.JOB_COMPLETED, 1)
             eventful.onJobInitiated[GLOBAL_KEY] = on_new_job
-            eventful.onJobCompleted[GLOBAL_KEY] = on_job_completed
         end
     end
 end
