@@ -213,23 +213,67 @@ local function describe_unit(unit)
     return name
 end
 
+local FORT_DEATH_NO_KILLER = {
+    '%s has tragically died',
+    '%s met an untimely end',
+    '%s perished in sorrow'
+}
+
+local FORT_DEATH_WITH_KILLER = {
+    '%s was murdered by %s',
+    '%s fell victim to %s',
+    '%s was slain by %s'
+}
+
+local ENEMY_DEATH_WITH_KILLER = {
+    '%s granted a glorious death to %s',
+    '%s dispatched the wretched %s',
+    '%s vanquished pitiful %s'
+}
+
+local ENEMY_DEATH_NO_KILLER = {
+    '%s met their demise',
+    '%s found their end',
+    '%s succumbed to death'
+}
+
+local function random_choice(tbl)
+    return tbl[math.random(#tbl)]
+end
+
 local function format_death_text(unit)
-    local str = unit.name.has_name and '' or 'The '
-    str = str .. describe_unit(unit)
-    str = str .. ' ' .. death_string(unit.counters.death_cause)
+    local victim = describe_unit(unit)
     local incident = df.incident.find(unit.counters.death_id)
-    if incident then
-        if incident.criminal then
-            local killer = df.unit.find(incident.criminal)
-            if killer then
-                str = str .. (', killed by the %s'):format(get_race_name(killer.race))
-                if killer.name.has_name then
-                    str = str .. (' %s'):format(dfhack.translation.translateName(dfhack.units.getVisibleName(killer)))
-                end
+    local killer
+    if incident and incident.criminal then
+        killer = df.unit.find(incident.criminal)
+    end
+
+    if dfhack.units.isFortControlled(unit) then
+        if killer then
+            local killer_name = describe_unit(killer)
+            return string.format(random_choice(FORT_DEATH_WITH_KILLER), victim, killer_name)
+        else
+            return string.format(random_choice(FORT_DEATH_NO_KILLER), victim)
+        end
+    elseif dfhack.units.isInvader(unit) then
+        if killer then
+            local killer_name = describe_unit(killer)
+            return string.format(random_choice(ENEMY_DEATH_WITH_KILLER), killer_name, victim)
+        else
+            return string.format(random_choice(ENEMY_DEATH_NO_KILLER), victim)
+        end
+    else
+        local str = (unit.name.has_name and '' or 'The ') .. victim
+        str = str .. ' ' .. death_string(unit.counters.death_cause)
+        if killer then
+            str = str .. (', killed by the %s'):format(get_race_name(killer.race))
+            if killer.name.has_name then
+                str = str .. (' %s'):format(dfhack.translation.translateName(dfhack.units.getVisibleName(killer)))
             end
         end
+        return str
     end
-    return str
 end
 
 local CATEGORY_MAP = {
