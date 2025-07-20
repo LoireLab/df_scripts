@@ -75,20 +75,19 @@ local function on_job_completed(job)
 	if debug_enabled then
         dfhack.gui.showAnnouncement('multihaul: on_job_completed called', COLOR_GREEN)
     end
-	if job.job_type ~= df.job_type.StoreItemInStockpile then return end
+	if job.job_type ~= df.job_type.StoreItemInStockpile or #job.items == 0 then return end
 	if debug_enabled then
-        dfhack.gui.showAnnouncement('multihaul: on_job_completed called on StoreItemInStockpile', COLOR_GREEN)
+        dfhack.gui.showAnnouncement('multihaul: on_job_completed called on StoreItemInStockpile with job items', COLOR_GREEN)
     end
-    --if #job.items == 0 then return end
-    --local container
-    --for _,jitem in ipairs(job.items) do
-    --    if jitem.item and (jitem.item:isWheelbarrow() or (jitem.item.flags.container and jitem.item:isBag())) then
-    --        container = jitem.item
-    -        break
-    --    end
-    --end
-    --if not container then return end
-	--emptyContainer(container)
+    local container
+    for _,jitem in ipairs(job.items) do
+        if jitem.item and (dfhack.items.getCapacity(jitem.item)>0) then
+            container = jitem.item
+            break
+        end
+    end
+    if not container then return end
+	emptyContainer(container)
 end
 	
 local function emptyContainer(container)
@@ -103,6 +102,7 @@ local function emptyContainer(container)
     end
 
 local function enable(state)
+	eventful.enableEvent(eventful.eventType.JOB_COMPLETED, 1)
     enabled = state
     if enabled then
         eventful.onJobInitiated[GLOBAL_KEY] = on_new_job
@@ -131,6 +131,7 @@ dfhack.onStateChange[GLOBAL_KEY] = function(sc)
     if sc == SC_MAP_LOADED then
         load_state()
         if enabled then
+			eventful.enableEvent(eventful.eventType.JOB_COMPLETED, 1)
             eventful.onJobInitiated[GLOBAL_KEY] = on_new_job
             eventful.onJobCompleted[GLOBAL_KEY] = on_job_completed
         end
