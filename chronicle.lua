@@ -11,17 +11,17 @@ chronicle
 Chronicles fortress events: unit deaths, item creation, and invasions
 
 Usage:
-	chronicle enable
-	chronicle disable 
+    chronicle enable
+    chronicle disable
 
-    chronicle [print] - prints 25 last recorded events 
-	chronicle print [number] - prints last [number] recorded events 
-	chronicle export - saves current chronicle to a txt file 
-	chronicle clear - erases current chronicle (DANGER)
-	
-	chronicle summary - shows how much items were produced per category in each year
-	
-	chronicle masterworks [enable|disable] - enables or disables logging of masterful crafted items events
+    chronicle [print] - prints 25 last recorded events
+    chronicle print [number] - prints last [number] recorded events
+    chronicle export - saves current chronicle to a txt file
+    chronicle clear - erases current chronicle (DANGER)
+
+    chronicle summary - shows how much items were produced per category in each year
+
+    chronicle masterworks [enable|disable] - enables or disables logging of masterful crafted items events
 ]====]
 
 local GLOBAL_KEY = 'chronicle'
@@ -171,23 +171,67 @@ local function describe_unit(unit)
     return name
 end
 
+local FORT_DEATH_NO_KILLER = {
+    '%s was tragically killed',
+    '%s met an untimely end',
+    '%s perished in sorrow'
+}
+
+local FORT_DEATH_WITH_KILLER = {
+    '%s was murdered by %s',
+    '%s fell victim to %s',
+    '%s was slain by %s'
+}
+
+local ENEMY_DEATH_WITH_KILLER = {
+    '%s granted a glorious death to the pathetic %s',
+    '%s dispatched the wretched %s',
+    '%s vanquished pitiful %s'
+}
+
+local ENEMY_DEATH_NO_KILLER = {
+    '%s met their demise',
+    '%s found their demise',
+    '%s succumbed to defeat'
+}
+
+local function random_choice(tbl)
+    return tbl[math.random(#tbl)]
+end
+
 local function format_death_text(unit)
-    local str = unit.name.has_name and '' or 'The '
-    str = str .. describe_unit(unit)
-    str = str .. ' ' .. death_string(unit.counters.death_cause)
+    local victim = describe_unit(unit)
     local incident = df.incident.find(unit.counters.death_id)
-    if incident then
-        if incident.criminal then
-            local killer = df.unit.find(incident.criminal)
-            if killer then
-                str = str .. (', killed by the %s'):format(get_race_name(killer.race))
-                if killer.name.has_name then
-                    str = str .. (' %s'):format(dfhack.translation.translateName(dfhack.units.getVisibleName(killer)))
-                end
+    local killer
+    if incident and incident.criminal then
+        killer = df.unit.find(incident.criminal)
+    end
+
+    if dfhack.units.isFortControlled(unit) then
+        if killer then
+            local killer_name = describe_unit(killer)
+            return string.format(random_choice(FORT_DEATH_WITH_KILLER), victim, killer_name)
+        else
+            return string.format(random_choice(FORT_DEATH_NO_KILLER), victim)
+        end
+    elseif dfhack.units.isInvader(unit) then
+        if killer then
+            local killer_name = describe_unit(killer)
+            return string.format(random_choice(ENEMY_DEATH_WITH_KILLER), killer_name, victim)
+        else
+            return string.format(random_choice(ENEMY_DEATH_NO_KILLER), victim)
+        end
+    else
+        local str = (unit.name.has_name and '' or 'The ') .. victim
+        str = str .. ' ' .. death_string(unit.counters.death_cause)
+        if killer then
+            str = str .. (', killed by the %s'):format(get_race_name(killer.race))
+            if killer.name.has_name then
+                str = str .. (' %s'):format(dfhack.translation.translateName(dfhack.units.getVisibleName(killer)))
             end
         end
+        return str
     end
-    return str
 end
 
 local CATEGORY_MAP = {
@@ -307,9 +351,9 @@ local function on_report(report_id)
         add_entry(string.format('%s: %s', date, msg))
     elseif msg:find(' has come') then
         add_entry(string.format('%s: %s', date, msg))
-	elseif msg:find(' upon you') then
+    elseif msg:find(' upon you') then
         add_entry(string.format('%s: %s', date, msg))
-	elseif msg:find('It is ') then
+    elseif msg:find('It is ') then
         add_entry(string.format('%s: %s', date, msg))
     end
 end
@@ -331,7 +375,7 @@ local function do_enable()
     eventful.enableEvent(eventful.eventType.ITEM_CREATED, 10)
     eventful.enableEvent(eventful.eventType.INVASION, 10)
     eventful.enableEvent(eventful.eventType.REPORT, 10)
-	eventful.enableEvent(eventful.eventType.UNIT_DEATH, 10)
+    eventful.enableEvent(eventful.eventType.UNIT_DEATH, 10)
     eventful.onUnitDeath[GLOBAL_KEY] = on_unit_death
     eventful.onItemCreated[GLOBAL_KEY] = on_item_created
     eventful.onInvasion[GLOBAL_KEY] = on_invasion

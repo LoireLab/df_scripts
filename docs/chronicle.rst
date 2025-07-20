@@ -7,12 +7,15 @@ chronicle
 
 This tool automatically records notable events in a chronicle that is stored
 with your save. Unit deaths now include the cause of death as well as any
-titles, nicknames, or noble positions held by the fallen. Artifact creation
-events, invasions, mission reports, and yearly totals of crafted items are also
-recorded. Announcements for masterwork creations can be toggled on or off
-and are enabled by default. Artifact entries include the full announcement text
-from the game, and output text is sanitized so that any special characters are
-replaced with simple Latin equivalents.
+titles, nicknames, or noble positions held by the fallen. Death entries also
+differentiate fortress citizens, invading enemies, and other visitors. Fortress
+citizens are memorialized with tragic or murderous phrasing, while invading
+enemies receive a mocking epitaph. Artifact creation events, invasions, mission
+reports, and yearly totals of
+crafted items are also recorded. Announcements for masterwork creations can be
+toggled on or off and are enabled by default. Artifact entries include the full
+announcement text from the game, and output text is sanitized so that any
+special characters are replaced with simple Latin equivalents.
 
 Usage
 -----
