@@ -419,6 +419,12 @@ local function main(args)
                 print(state.entries[i])
             end
         end
+    elseif cmd == 'view' then
+        if #state.entries == 0 then
+            print('Chronicle is empty.')
+        else
+            reqscript('gui/chronicle').show()
+        end
     elseif cmd == 'summary' then
         local years = {}
         for year in pairs(state.item_counts) do table.insert(years, year) end

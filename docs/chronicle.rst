@@ -26,6 +26,7 @@ Usage
     chronicle clear
     chronicle masterworks <enable|disable>
     chronicle export [filename]
+    chronicle view
 
 ``chronicle enable``
     Start recording events in the current fortress.
@@ -45,6 +46,8 @@ Usage
 ``chronicle export``
     Write all recorded events to a text file. If ``filename`` is omitted, the
     output is saved as ``chronicle.txt`` in your save folder.
+``chronicle view``
+    Display the full chronicle in a scrollable window.
 
 Examples
 --------
