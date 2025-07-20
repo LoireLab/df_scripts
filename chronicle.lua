@@ -11,20 +11,23 @@ chronicle
 Chronicles fortress events: unit deaths, item creation, and invasions
 
 Usage:
-	chronicle enable
-	chronicle disable 
+    chronicle enable
+    chronicle disable
 
-    chronicle [print] - prints 25 last recorded events 
-	chronicle print [number] - prints last [number] recorded events 
-	chronicle export - saves current chronicle to a txt file 
-	chronicle clear - erases current chronicle (DANGER)
-	
-	chronicle summary - shows how much items were produced per category in each year
-	
-	chronicle masterworks [enable|disable] - enables or disables logging of masterful crafted items events
+    chronicle [print] - prints 25 last recorded events
+        chronicle print [number] - prints last [number] recorded events
+        chronicle long - prints the full chronicle
+        chronicle export - saves current chronicle to a txt file
+        chronicle clear - erases current chronicle (DANGER)
+
+    chronicle summary - shows how much items were produced per category in each year
+
+    chronicle masterworks [enable|disable] - enables or disables logging of masterful crafted items events
 ]====]
 
 local GLOBAL_KEY = 'chronicle'
+local MAX_LOG_CHARS = 2^15 -- trim chronicle to most recent ~32KB of text
+local FULL_LOG_PATH = dfhack.getSavePath() .. '/chronicle_full.txt'
 
 local function get_default_state()
     return {
@@ -130,8 +133,44 @@ local function sanitize(text)
     return str
 end
 
+local function read_external_entries()
+    local f = io.open(FULL_LOG_PATH, 'r')
+    if not f then return {} end
+    local lines = {}
+    for line in f:lines() do table.insert(lines, line) end
+    f:close()
+    return lines
+end
+
+local function get_full_entries()
+    local entries = read_external_entries()
+    for _,e in ipairs(state.entries) do table.insert(entries, e) end
+    return entries
+end
+
+local function trim_entries()
+    local total = 0
+    local start_idx = #state.entries
+    while start_idx > 0 and total <= MAX_LOG_CHARS do
+        total = total + #state.entries[start_idx] + 1
+        start_idx = start_idx - 1
+    end
+    if start_idx > 0 then
+        local old = {}
+        for i=1,start_idx do table.insert(old, table.remove(state.entries, 1)) end
+        local ok, f = pcall(io.open, FULL_LOG_PATH, 'a')
+        if ok and f then
+            for _,e in ipairs(old) do f:write(e, '\n') end
+            f:close()
+        else
+            qerror('Cannot open file for writing: ' .. FULL_LOG_PATH)
+        end
+    end
+end
+
 local function add_entry(text)
     table.insert(state.entries, sanitize(text))
+    trim_entries()
     persist_state()
 end
 
@@ -140,6 +179,9 @@ local function export_chronicle(path)
     local ok, f = pcall(io.open, path, 'w')
     if not ok or not f then
         qerror('Cannot open file for writing: ' .. path)
+    end
+    for _,entry in ipairs(read_external_entries()) do
+        f:write(entry, '\n')
     end
     for _,entry in ipairs(state.entries) do
         f:write(entry, '\n')
@@ -307,9 +349,9 @@ local function on_report(report_id)
         add_entry(string.format('%s: %s', date, msg))
     elseif msg:find(' has come') then
         add_entry(string.format('%s: %s', date, msg))
-	elseif msg:find(' upon you') then
+    elseif msg:find(' upon you') then
         add_entry(string.format('%s: %s', date, msg))
-	elseif msg:find('It is ') then
+    elseif msg:find('It is ') then
         add_entry(string.format('%s: %s', date, msg))
     end
 end
@@ -331,7 +373,7 @@ local function do_enable()
     eventful.enableEvent(eventful.eventType.ITEM_CREATED, 10)
     eventful.enableEvent(eventful.eventType.INVASION, 10)
     eventful.enableEvent(eventful.eventType.REPORT, 10)
-	eventful.enableEvent(eventful.eventType.UNIT_DEATH, 10)
+    eventful.enableEvent(eventful.eventType.UNIT_DEATH, 10)
     eventful.onUnitDeath[GLOBAL_KEY] = on_unit_death
     eventful.onItemCreated[GLOBAL_KEY] = on_item_created
     eventful.onInvasion[GLOBAL_KEY] = on_invasion
@@ -409,6 +451,13 @@ local function main(args)
         persist_state()
     elseif cmd == 'export' then
         export_chronicle(args[2])
+    elseif cmd == 'long' then
+        local entries = get_full_entries()
+        if #entries == 0 then
+            print('Chronicle is empty.')
+        else
+            for _,entry in ipairs(entries) do print(entry) end
+        end
     elseif cmd == 'print' then
         local count = tonumber(args[2]) or 25
         if #state.entries == 0 then
@@ -420,7 +469,7 @@ local function main(args)
             end
         end
     elseif cmd == 'view' then
-        if #state.entries == 0 then
+        if #get_full_entries() == 0 then
             print('Chronicle is empty.')
         else
             reqscript('gui/chronicle').show()
