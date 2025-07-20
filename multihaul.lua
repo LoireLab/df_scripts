@@ -29,8 +29,8 @@ local function load_state()
     local data = dfhack.persistent.getSiteData(GLOBAL_KEY, {})
     enabled = data.enabled or false
     debug_enabled = data.debug_enabled or false
-    radius = data.radius or 1
-    max_items = data.max_items or 4
+    radius = data.radius or 10
+    max_items = data.max_items or 10
 end
 
 local function add_nearby_items(job)
@@ -46,20 +46,18 @@ local function add_nearby_items(job)
         if it ~= target and not it.flags.in_job and it.flags.on_ground and it.pos.z == z and math.abs(it.pos.x - x) <= radius and math.abs(it.pos.y - y) <= radius then
             dfhack.job.attachJobItem(job, it, df.job_role_type.Hauled, -1, -1)
             count = count + 1
-            if debug_enabled then
-                dfhack.gui.showAnnouncement(
-                    ('multihaul: added %s to hauling job'):format(
-                        dfhack.items.getDescription(it, 0)),
-                    COLOR_CYAN)
-            end
+            --if debug_enabled then
+           --     dfhack.gui.showAnnouncement(
+            --        ('multihaul: added %s to hauling job'):format(
+            --            dfhack.items.getDescription(it, 0)),
+           --         COLOR_CYAN)
+            --end
             if count >= max_items then break end
         end
     end
-    if debug_enabled and count > 0 then
-        dfhack.gui.showAnnouncement(
-            ('multihaul: added %d item(s) nearby'):format(count),
-            COLOR_CYAN)
-    end
+    --if debug_enabled and count > 0 then
+        --dfhack.gui.showAnnouncement(('multihaul: added %d item(s) nearby'):format(count),COLOR_CYAN)
+    --end
 end
 
 local function on_new_job(job)
@@ -81,14 +79,16 @@ local function on_job_completed(job)
 	if debug_enabled then
         dfhack.gui.showAnnouncement('multihaul: on_job_completed called on StoreItemInStockpile', COLOR_GREEN)
     end
-	if not job_items[job.id] then return end
-    local this_job_items = job_items[job.id]
-	dfhack.gui.showAnnouncement('Trying to empty ',COLOR_CYAN)
-	for _, item in ipairs(this_job_items) do
-		if dfhack.items.getCapacity(item) > 0 then
-			emptyContainer(item)
-		end
-	end
+    --if #job.items == 0 then return end
+    --local container
+    --for _,jitem in ipairs(job.items) do
+    --    if jitem.item and (jitem.item:isWheelbarrow() or (jitem.item.flags.container and jitem.item:isBag())) then
+    --        container = jitem.item
+    -        break
+    --    end
+    --end
+    --if not container then return end
+	--emptyContainer(container)
 end
 	
 local function emptyContainer(container)
