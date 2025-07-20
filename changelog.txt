@@ -29,6 +29,7 @@ Template for new versions:
 # Future
 
 ## New Tools
+- `stack-bodyparts`: combine severed body parts into stackable piles that can be stored in bins or bags
 
 ## New Features
 
