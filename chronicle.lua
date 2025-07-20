@@ -305,6 +305,21 @@ local IGNORE_TYPES = {
     CORPSE=true, CORPSEPIECE=true, REMAINS=true,
 }
 
+local ANNOUNCEMENT_PATTERNS = {
+    'the enemy have come',
+    'a vile force of darkness has arrived',
+    'an ambush',
+    'snatcher',
+    'thief',
+    ' has bestowed the name ',
+    ' has been found dead',
+    'you have ',
+    ' has come',
+    ' upon you',
+    'tt is ',
+	'is visiting',
+}
+
 local function get_category(item)
     local t = df.item_type[item:getType()]
     return CATEGORY_MAP[t] or 'other'
@@ -379,25 +394,15 @@ local function on_report(report_id)
         add_entry(string.format('%s: %s', date, text))
         return
     end
-
-    local date = format_date(df.global.cur_year, df.global.cur_year_tick)
-    local msg = transform_notification(text)
-
-    if msg:find('The enemy have come') then
-        add_entry(string.format('%s: %s', date, msg))
-    elseif msg:find(' has bestowed the name ') then
-        add_entry(string.format('%s: %s', date, msg))
-    elseif msg:find(' has been found dead') then
-        add_entry(string.format('%s: %s', date, msg))
-    elseif msg:find('Dwarves have ') then
-        add_entry(string.format('%s: %s', date, msg))
-    elseif msg:find(' has come') then
-        add_entry(string.format('%s: %s', date, msg))
-    elseif msg:find(' upon you') then
-        add_entry(string.format('%s: %s', date, msg))
-    elseif msg:find('It is ') then
-        add_entry(string.format('%s: %s', date, msg))
-    end
+    
+	for _,pattern in ipairs(ANNOUNCEMENT_PATTERNS) do
+        if text:lower():find(pattern) then
+			local date = format_date(df.global.cur_year, df.global.cur_year_tick)
+			local msg = transform_notification(text)
+            add_entry(string.format('%s: %s', date, msg))
+            break
+        end
+end
 end
 
 local function transform_notification(text)
