@@ -492,10 +492,10 @@ end
 
 local function do_enable()
     state.enabled = true
-    eventful.enableEvent(eventful.eventType.ITEM_CREATED, 10)
-    eventful.enableEvent(eventful.eventType.INVASION, 10)
-    eventful.enableEvent(eventful.eventType.REPORT, 10)
-    eventful.enableEvent(eventful.eventType.UNIT_DEATH, 10)
+    eventful.enableEvent(eventful.eventType.ITEM_CREATED, 100)
+    eventful.enableEvent(eventful.eventType.INVASION, 100)
+    eventful.enableEvent(eventful.eventType.REPORT, 100)
+    eventful.enableEvent(eventful.eventType.UNIT_DEATH, 100)
     eventful.onUnitDeath[GLOBAL_KEY] = on_unit_death
     eventful.onItemCreated[GLOBAL_KEY] = on_item_created
     eventful.onInvasion[GLOBAL_KEY] = on_invasion
