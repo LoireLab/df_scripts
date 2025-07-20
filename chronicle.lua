@@ -216,26 +216,78 @@ end
 local FORT_DEATH_NO_KILLER = {
     '%s has tragically died',
     '%s met an untimely end',
-    '%s perished in sorrow'
+    '%s perished in sorrow',
+    '%s breathed their last in the halls of the fort',
+    '%s was lost to misfortune',
+    '%s passed into the stone',
+    '%s left this world too soon',
+    '%s faded from dwarven memory'
 }
 
 local FORT_DEATH_WITH_KILLER = {
     '%s was murdered by %s',
     '%s fell victim to %s',
-    '%s was slain by %s'
+    '%s was slain by %s',
+    '%s was claimed by the hand of %s',
+    '%s met their doom at the hands of %s',
+    '%s could not withstand the wrath of %s',
+    '%s was bested in deadly combat by %s',
+    '%s was struck down by %s'
+}
+
+local FORT_DEATH_STRANGE = {
+    '%s met their mysterious demise',
+    '%s blood was drained completely',
+    '%s fate was sealed by darkest evil',
+    '%s disappeared without a trace',
+    '%s succumbed to an unnatural end',
+    '%s was claimed by forces unknown',
+    '%s fell prey to a sinister fate'
 }
 
 local ENEMY_DEATH_WITH_KILLER = {
     '%s granted a glorious death to %s',
     '%s dispatched the wretched %s',
-    '%s vanquished pitiful %s'
+    '%s vanquished pitiful %s',
+    '%s sent %s to the afterlife',
+    '%s laid low the hated %s',
+    '%s showed no mercy to %s',
+    '%s brought an end to %s’s rampage',
+    '%s struck down the enemy %s'
 }
 
 local ENEMY_DEATH_NO_KILLER = {
     '%s met their demise',
     '%s found their end',
-    '%s succumbed to death'
+    '%s succumbed to death',
+    '%s was brought low by fate',
+    '%s faded from existence',
+    '%s’s threat was ended',
+    '%s was erased from this world'
 }
+
+local DANGEROUS_ENEMY_DEATH_WITH_KILLER = {
+    '%s has claimed victory over the dreaded %s!',
+    '%s has felled the fearsome %s in battle!',
+    '%s delivered the final blow to the infamous %s!',
+    '%s stood triumphant over the legendary %s!',
+    '%s shattered the legend of %s!',
+    '%s put an end to the reign of terror of %s!',
+    '%s conquered the monstrous %s in epic battle!',
+    '%s broke the might of %s!'
+}
+
+local DANGEROUS_ENEMY_DEATH_NO_KILLER = {
+    '%s has fallen, their legend ends here.',
+    '%s has perished, their menace is no more.',
+    '%s was undone, their terror brought to an end.',
+    '%s vanished into myth, never to threaten again.',
+    '%s was swept away by fate itself.',
+    '%s crumbled under their own power.',
+    '%s slipped into oblivion, their tale finished.',
+    '%s faded into legend, never to rise again.'
+}
+
 
 local function random_choice(tbl)
     return tbl[math.random(#tbl)]
@@ -250,13 +302,22 @@ local function format_death_text(unit)
     end
 
     if dfhack.units.isFortControlled(unit) then
-        if killer then
+		if dfhack.units.isBloodsucker(killer) then 
+            return string.format(random_choice(FORT_DEATH_STRANGE), victim)
+    elseif killer then
             local killer_name = describe_unit(killer)
             return string.format(random_choice(FORT_DEATH_WITH_KILLER), victim, killer_name)
         else
             return string.format(random_choice(FORT_DEATH_NO_KILLER), victim)
         end
     elseif dfhack.units.isInvader(unit) then
+        if killer then
+            local killer_name = describe_unit(killer)
+            return string.format(random_choice(ENEMY_DEATH_WITH_KILLER), killer_name, victim)
+        else
+            return string.format(random_choice(ENEMY_DEATH_NO_KILLER), victim)
+        end
+	elseif dfhack.units.isGreatDanger(unit) then
         if killer then
             local killer_name = describe_unit(killer)
             return string.format(random_choice(ENEMY_DEATH_WITH_KILLER), killer_name, victim)
