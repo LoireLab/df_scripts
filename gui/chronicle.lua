@@ -15,7 +15,7 @@ ChronicleView.ATTRS{
 }
 
 function ChronicleView:init()
-    self.entries = chronicle.state and chronicle.state.entries or {}
+    self.entries = chronicle.get_full_entries()
     self.start = 1
     self.start_min = 1
     self.start_max = math.max(1, #self.entries - self.frame_height + 1)
@@ -63,4 +63,3 @@ end
 if not dfhack_flags.module then
     show()
 end
-

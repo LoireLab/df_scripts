@@ -14,6 +14,10 @@ and are enabled by default. Artifact entries include the full announcement text
 from the game, and output text is sanitized so that any special characters are
 replaced with simple Latin equivalents.
 
+The chronicle file is trimmed to about 32KB of the most recent text so that it
+doesn't exceed DFHack's persistence limits. Trimmed entries are automatically
+appended to ``chronicle_full.txt`` in your save folder so nothing is lost.
+
 Usage
 -----
 
@@ -22,6 +26,7 @@ Usage
     chronicle enable
     chronicle disable
     chronicle print [count]
+    chronicle long
     chronicle summary
     chronicle clear
     chronicle masterworks <enable|disable>
@@ -46,6 +51,9 @@ Usage
 ``chronicle export``
     Write all recorded events to a text file. If ``filename`` is omitted, the
     output is saved as ``chronicle.txt`` in your save folder.
+``chronicle long``
+    Print the entire chronicle, including older entries stored in
+    ``chronicle_full.txt``.
 ``chronicle view``
     Display the full chronicle in a scrollable window.
 
