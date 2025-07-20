@@ -10,7 +10,9 @@ local GLOBAL_KEY = 'multihaul'
 enabled = enabled or false
 debug_enabled = debug_enabled or false
 radius = radius or 1
-max_items = max_items or 4
+
+-- tracks extra items added to hauling jobs so we can unload them on completion
+job_added_items = job_added_items or {}
 
 function isEnabled()
     return enabled
@@ -21,7 +23,6 @@ local function persist_state()
         enabled=enabled,
         debug_enabled=debug_enabled,
         radius=radius,
-        max_items=max_items,
     })
 end
 
@@ -30,7 +31,6 @@ local function load_state()
     enabled = data.enabled or false
     debug_enabled = data.debug_enabled or false
     radius = data.radius or 1
-    max_items = data.max_items or 4
 end
 
 local function add_nearby_items(job)
@@ -41,24 +41,36 @@ local function add_nearby_items(job)
     local x,y,z = dfhack.items.getPosition(target)
     if not x then return end
 
-    local count = 0
+    local remaining = dfhack.items.getCapacity(target)
+    for _,i in ipairs(dfhack.items.getContainedItems(target)) do
+        remaining = remaining - i:getVolume()
+    end
+
+    local added = {}
     for _,it in ipairs(df.global.world.items.other.IN_PLAY) do
         if it ~= target and not it.flags.in_job and it.flags.on_ground and it.pos.z == z and math.abs(it.pos.x - x) <= radius and math.abs(it.pos.y - y) <= radius then
-            dfhack.job.attachJobItem(job, it, df.job_role_type.Hauled, -1, -1)
-            count = count + 1
+            local vol = it:getVolume()
+            if vol > remaining then break end
+            -- attach to job item 0 so the game knows to unload it
+            dfhack.job.attachJobItem(job, it, df.job_role_type.Hauled, 0, -1)
+            table.insert(added, it.id)
+            remaining = remaining - vol
             if debug_enabled then
                 dfhack.gui.showAnnouncement(
                     ('multihaul: added %s to hauling job'):format(
                         dfhack.items.getDescription(it, 0)),
                     COLOR_CYAN)
             end
-            if count >= max_items then break end
+            if remaining <= 0 then break end
         end
     end
-    if debug_enabled and count > 0 then
-        dfhack.gui.showAnnouncement(
-            ('multihaul: added %d item(s) nearby'):format(count),
-            COLOR_CYAN)
+    if #added > 0 then
+        job_added_items[job.id] = added
+        if debug_enabled then
+            dfhack.gui.showAnnouncement(
+                ('multihaul: added %d item(s) nearby'):format(#added),
+                COLOR_CYAN)
+        end
     end
 end
 
@@ -67,18 +79,42 @@ local function on_new_job(job)
     add_nearby_items(job)
 end
 
+local function on_job_completed(job)
+    local items = job_added_items[job.id]
+    if not items then return end
+    job_added_items[job.id] = nil
+    for _,id in ipairs(items) do
+        local it = df.item.find(id)
+        if it then
+            local cont = dfhack.items.getContainer(it)
+            if cont then
+                dfhack.items.moveToGround(it, cont.pos)
+            end
+            if it.flags.in_job then
+                local ref = dfhack.items.getSpecificRef(it, df.specific_ref_type.JOB)
+                if ref then
+                    dfhack.job.removeJob(ref.data.job)
+                end
+            end
+        end
+    end
+end
+
 local function enable(state)
     enabled = state
     if enabled then
         eventful.onJobInitiated[GLOBAL_KEY] = on_new_job
+        eventful.onJobCompleted[GLOBAL_KEY] = on_job_completed
     else
         eventful.onJobInitiated[GLOBAL_KEY] = nil
+        eventful.onJobCompleted[GLOBAL_KEY] = nil
     end
     persist_state()
 end
 
 if dfhack.internal.IN_TEST then
-    unit_test_hooks = {on_new_job=on_new_job, enable=enable, load_state=load_state}
+    unit_test_hooks = {on_new_job=on_new_job, enable=enable,
+                       load_state=load_state, on_job_completed=on_job_completed}
 end
 
 -- state change handler
@@ -87,12 +123,14 @@ dfhack.onStateChange[GLOBAL_KEY] = function(sc)
     if sc == SC_MAP_UNLOADED then
         enabled = false
         eventful.onJobInitiated[GLOBAL_KEY] = nil
+        eventful.onJobCompleted[GLOBAL_KEY] = nil
         return
     end
     if sc == SC_MAP_LOADED then
         load_state()
         if enabled then
             eventful.onJobInitiated[GLOBAL_KEY] = on_new_job
+            eventful.onJobCompleted[GLOBAL_KEY] = on_job_completed
         end
     end
 end
@@ -122,9 +160,6 @@ local function parse_options(start_idx)
         elseif a == '--radius' then
             i = i + 1
             radius = tonumber(args[i]) or radius
-        elseif a == '--max-items' then
-            i = i + 1
-            max_items = tonumber(args[i]) or max_items
         end
         i = i + 1
     end
@@ -138,13 +173,13 @@ elseif cmd == 'disable' then
     enable(false)
 elseif cmd == 'status' or not cmd then
     print((enabled and 'multihaul is enabled' or 'multihaul is disabled'))
-    print(('radius=%d max-items=%d debug=%s')
-          :format(radius, max_items, debug_enabled and 'on' or 'off'))
+    print(('radius=%d debug=%s')
+          :format(radius, debug_enabled and 'on' or 'off'))
 elseif cmd == 'config' then
     parse_options(2)
     persist_state()
-    print(('multihaul config: radius=%d max-items=%d debug=%s')
-          :format(radius, max_items, debug_enabled and 'on' or 'off'))
+    print(('multihaul config: radius=%d debug=%s')
+          :format(radius, debug_enabled and 'on' or 'off'))
 else
-    qerror('Usage: multihaul [enable|disable|status|config] [--radius N] [--max-items N] [--debug|--no-debug]')
+    qerror('Usage: multihaul [enable|disable|status|config] [--radius N] [--debug|--no-debug]')
 end
