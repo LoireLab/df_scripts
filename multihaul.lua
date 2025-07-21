@@ -11,6 +11,7 @@ enabled = enabled or false
 debug_enabled = debug_enabled or false
 radius = radius or 10
 max_items = max_items or 10
+mode = mode or 'any'
 
 function isEnabled()
     return enabled
@@ -22,6 +23,7 @@ local function persist_state()
         debug_enabled=debug_enabled,
         radius=radius,
         max_items=max_items,
+        mode=mode,
     })
 end
 
@@ -31,6 +33,7 @@ local function load_state()
     debug_enabled = data.debug_enabled or false
     radius = data.radius or 10
     max_items = data.max_items or 10
+    mode = data.mode or 'any'
 end
 
 local function get_job_stockpile(job)
@@ -43,6 +46,10 @@ local function items_identical(a, b)
         a.mat_type == b.mat_type and a.mat_index == b.mat_index
 end
 
+local function items_sametype(a, b)
+    return a:getType() == b:getType() and a:getSubtype() == b:getSubtype()
+end
+
 local function add_nearby_items(job)
     if #job.items == 0 then return end
 
@@ -53,13 +60,23 @@ local function add_nearby_items(job)
     local x,y,z = dfhack.items.getPosition(target)
     if not x then return end
 
+    local function matches(it)
+        if mode == 'identical' then
+            return items_identical(it, target)
+        elseif mode == 'sametype' then
+            return items_sametype(it, target)
+        else
+            return true
+        end
+    end
+
     local count = 0
     for _,it in ipairs(df.global.world.items.other.IN_PLAY) do
         if it ~= target and not it.flags.in_job and it.flags.on_ground and
                 it.pos.z == z and math.abs(it.pos.x - x) <= radius and
                 math.abs(it.pos.y - y) <= radius and
-                dfhack.buildings.isItemAllowedInStockpile(it, stockpile) --and items_identical(it, target)
-                                then
+                dfhack.buildings.isItemAllowedInStockpile(it, stockpile) and
+                matches(it) then
             dfhack.job.attachJobItem(job, it, df.job_role_type.Hauled, -1, -1)
             count = count + 1
             if debug_enabled then
@@ -176,9 +193,17 @@ local function parse_options(start_idx)
         elseif a == '--radius' then
             i = i + 1
             radius = tonumber(args[i]) or radius
-                elseif a == '--max-items' then
+        elseif a == '--max-items' then
             i = i + 1
             max_items = tonumber(args[i]) or max_items
+        elseif a == '--mode' then
+            i = i + 1
+            local m = args[i]
+            if m == 'any' or m == 'sametype' or m == 'identical' then
+                mode = m
+            else
+                qerror('invalid mode: ' .. tostring(m))
+            end
         end
         i = i + 1
     end
@@ -192,13 +217,13 @@ elseif cmd == 'disable' then
     enable(false)
 elseif cmd == 'status' or not cmd then
     print((enabled and 'multihaul is enabled' or 'multihaul is disabled'))
-    print(('radius=%d max-items=%d debug=%s')
-          :format(radius, max_items, debug_enabled and 'on' or 'off'))
+    print(('radius=%d max-items=%d mode=%s debug=%s')
+          :format(radius, max_items, mode, debug_enabled and 'on' or 'off'))
 elseif cmd == 'config' then
     parse_options(2)
     persist_state()
-    print(('multihaul config: radius=%d max-items=%d debug=%s')
-          :format(radius, max_items, debug_enabled and 'on' or 'off'))
+    print(('multihaul config: radius=%d max-items=%d mode=%s debug=%s')
+          :format(radius, max_items, mode, debug_enabled and 'on' or 'off'))
 else
-    qerror('Usage: multihaul [enable|disable|status|config] [--radius N] [--max-items N] [--debug|--no-debug]')
+    qerror('Usage: multihaul [enable|disable|status|config] [--radius N] [--max-items N] [--mode MODE] [--debug|--no-debug]')
 end
