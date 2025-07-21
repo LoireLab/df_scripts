@@ -50,7 +50,8 @@ local function add_nearby_items(job)
     for _,it in ipairs(df.global.world.items.other.IN_PLAY) do
         if it ~= target and not it.flags.in_job and it.flags.on_ground and
                 it.pos.z == z and math.abs(it.pos.x - x) <= radius and
-                math.abs(it.pos.y - y) <= radius and items_identical(it, target) then
+                math.abs(it.pos.y - y) <= radius --and items_identical(it, target)
+				then
             dfhack.job.attachJobItem(job, it, df.job_role_type.Hauled, -1, -1)
             count = count + 1
             if debug_enabled then
@@ -61,9 +62,6 @@ local function add_nearby_items(job)
             end
             if count >= max_items then break end
         end
-    end
-    if debug_enabled and count > 0 then
-        dfhack.gui.showAnnouncement(('multihaul: added %d item(s) nearby'):format(count),COLOR_CYAN)
     end
 end
 
@@ -84,18 +82,6 @@ local function emptyContainedItems(wheelbarrow)
         end
         dfhack.items.moveToGround(item, wheelbarrow.pos)
     end
-end
-
-local function wheelbarrow_needs_reset(job)
-    for _, jitem in ipairs(job.items) do
-        local item = jitem.item
-        if item and df.item_toolst:is_instance(item) and item:isWheelbarrow() then
-            if jitem.role ~= df.job_role_type.PushHaulVehicle then
-                return true
-            end
-        end
-    end
-    return false
 end
 
 local function clear_job_items(job)
@@ -123,11 +109,6 @@ end
 local function on_new_job(job)
     if job.job_type ~= df.job_type.StoreItemInStockpile then return end
 
-    if wheelbarrow_needs_reset(job) then
-        clear_job_items(job)
-        return
-    end
-
     local wheelbarrow = find_attached_wheelbarrow(job)
     if not wheelbarrow then return end
 
@@ -139,11 +120,6 @@ local function enable(state)
     enabled = state
     if enabled then
         eventful.onJobInitiated[GLOBAL_KEY] = on_new_job
-        for _, job in utils.listpairs(df.global.world.jobs.list) do
-            if job.job_type == df.job_type.StoreItemInStockpile and wheelbarrow_needs_reset(job) then
-                clear_job_items(job)
-            end
-        end
     else
         eventful.onJobInitiated[GLOBAL_KEY] = nil
     end
@@ -164,14 +140,6 @@ dfhack.onStateChange[GLOBAL_KEY] = function(sc)
     end
     if sc == SC_MAP_LOADED then
         load_state()
-        if enabled then
-            eventful.onJobInitiated[GLOBAL_KEY] = on_new_job
-            for _, job in utils.listpairs(df.global.world.jobs.list) do
-                if job.job_type == df.job_type.StoreItemInStockpile and wheelbarrow_needs_reset(job) then
-                    clear_job_items(job)
-                end
-            end
-        end
     end
 end
 
