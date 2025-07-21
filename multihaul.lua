@@ -47,6 +47,10 @@ local function items_identical(a, b)
 end
 
 local function items_sametype(a, b)
+    return a:getType() == b:getType()
+end
+
+local function items_samesubtype(a, b)
     return a:getType() == b:getType() and a:getSubtype() == b:getSubtype()
 end
 
@@ -65,7 +69,9 @@ local function add_nearby_items(job)
             return items_identical(it, target)
         elseif mode == 'sametype' then
             return items_sametype(it, target)
-        else
+        elseif mode == 'samesubtype' then
+            return items_samesubtype(it, target)
+		else
             return true
         end
     end
@@ -80,8 +86,8 @@ local function add_nearby_items(job)
             count = count + 1
             if debug_enabled then
                 dfhack.gui.showAnnouncement(
-                    ('multihaul: added %s to hauling job'):format(
-                        dfhack.items.getDescription(it, 0)),
+                    ('multihaul: added %s to hauling job of %s'):format(
+                        dfhack.items.getDescription(it, 0), dfhack.items.getDescription(target, 0)),
                     COLOR_CYAN)
             end
             if count >= max_items then break end
@@ -198,7 +204,7 @@ local function parse_options(start_idx)
         elseif a == '--mode' then
             i = i + 1
             local m = args[i]
-            if m == 'any' or m == 'sametype' or m == 'identical' then
+            if m == 'any' or m == 'sametype' or m == 'samesubtype' or m == 'identical' then
                 mode = m
             else
                 qerror('invalid mode: ' .. tostring(m))
