@@ -15,7 +15,7 @@ local function get_default_state()
         radius=10,
         max_items=10,
         mode='sametype',
-		autocancel=true
+        autocancel=true
     }
 end
 
@@ -82,7 +82,7 @@ local function add_nearby_items(job)
     for _,it in ipairs(df.global.world.items.other.IN_PLAY) do
         if it ~= target and not it.flags.in_job and it.flags.on_ground and
                 it.pos.z == z and math.abs(it.pos.x - x) <= state.radius and
-				not it:isWheelbarrow() and
+                not it:isWheelbarrow() and
                 math.abs(it.pos.y - y) <= state.radius and
                 not is_stockpiled(it) and
                 matches(it) then
@@ -143,7 +143,7 @@ local function emptyContainedItems(wheelbarrow)
             end
         end
         dfhack.items.moveToGround(item, wheelbarrow.pos)
-		if state.autocancel then
+        if state.autocancel then
             local count = finish_jobs_without_wheelbarrow()
             if count > 0 then
                 dfhack.gui.showAnnouncement(

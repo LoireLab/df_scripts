@@ -8,7 +8,7 @@ multihaul
 This tool allows dwarves to collect several adjacent items at once when
 performing hauling jobs with a wheelbarrow. When enabled, new
 ``StoreItemInStockpile`` jobs will automatically attach nearby items so
-they can be hauled in a single trip. Items claimed by another jobs would be ignored. 
+they can be hauled in a single trip. Items claimed by another jobs would be ignored.
 Items that are already stored in stockpiles are ignored.
 The script only triggers when a wheelbarrow is
 definitively attached to the job. By default, up to ten additional items within
@@ -46,7 +46,7 @@ Options
     subtype to match, and ``identical`` additionally matches material. The
     default is ``sametype``.
 ``--autocancel <on|off|enable|disable>``
-    Auto run finishjobs from time to time. 
+    Auto run finishjobs from time to time.
 ``--debug <on|off|enable|disable>``
     Show debug messages via ``dfhack.gui.showAnnouncement`` when items are
     attached.
