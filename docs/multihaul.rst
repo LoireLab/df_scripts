@@ -3,7 +3,7 @@ multihaul
 
 .. dfhack-tool::
     :summary: Haulers gather multiple nearby items when using wheelbarrows.
-    :tags: fort productivity items
+    :tags: fort productivity items stockpile
 
 This tool allows dwarves to collect several adjacent items at once when
 performing hauling jobs with a wheelbarrow. When enabled, new
@@ -38,8 +38,8 @@ Options
     Attach at most this many additional items to each hauling job. Default is
     ``10``.
 ``--mode <any|sametype|samesubtype|identical>``
-    Control which nearby items are attached. ``any`` collects any allowed items,
-    ``sametype`` only matches the item type, ``samesubtype`` requires type and
+    Control which nearby items are attached. ``any`` collects any items nearby, even if they are not related to an original jpb item,
+    ``sametype`` only matches the item type (like STONE or WOOD), ``samesubtype`` requires type and
     subtype to match, and ``identical`` additionally matches material. The
     default is ``sametype``.
 ``--debug``
