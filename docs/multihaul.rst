@@ -13,7 +13,7 @@ definitively attached to the job. By default, up to ten additional items within
 10 tiles of the original item are collected.
 Warning: Destination stockpile filters are currently ignored by the job (because of DF logic). Which items qualify can be controlled
 with the ``--mode`` option.
-Basic usage of wheelbarrows remains the same: dwarfs would use them only if hauling item is heavier than 75 
+Basic usage of wheelbarrows remains the same: dwarfs would use them only if hauling item is heavier than 75
 
 Usage
 -----
