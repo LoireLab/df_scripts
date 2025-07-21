@@ -86,10 +86,32 @@ local function emptyContainedItems(wheelbarrow)
     end
 end
 
+local function wheelbarrow_needs_reset(job)
+    for _, jitem in ipairs(job.items) do
+        local item = jitem.item
+        if item and df.item_toolst:is_instance(item) and item:isWheelbarrow() then
+            if jitem.role ~= df.job_role_type.PushHaulVehicle then
+                return true
+            end
+        end
+    end
+    return false
+end
+
+local function clear_job_items(job)
+    if debug_enabled then
+        dfhack.gui.showAnnouncement('multihaul: clearing stuck hauling job', COLOR_CYAN)
+    end
+    job.items:resize(0)
+end
+
 local function find_attached_wheelbarrow(job)
     for _, jitem in ipairs(job.items) do
         local item = jitem.item
         if item and df.item_toolst:is_instance(item) and item:isWheelbarrow() then
+            if jitem.role ~= df.job_role_type.PushHaulVehicle then
+                return nil
+            end
             local ref = dfhack.items.getSpecificRef(item, df.specific_ref_type.JOB)
             if ref and ref.data.job == job then
                 return item
@@ -100,6 +122,11 @@ end
 
 local function on_new_job(job)
     if job.job_type ~= df.job_type.StoreItemInStockpile then return end
+
+    if wheelbarrow_needs_reset(job) then
+        clear_job_items(job)
+        return
+    end
 
     local wheelbarrow = find_attached_wheelbarrow(job)
     if not wheelbarrow then return end
@@ -112,6 +139,11 @@ local function enable(state)
     enabled = state
     if enabled then
         eventful.onJobInitiated[GLOBAL_KEY] = on_new_job
+        for _, job in utils.listpairs(df.global.world.jobs.list) do
+            if job.job_type == df.job_type.StoreItemInStockpile and wheelbarrow_needs_reset(job) then
+                clear_job_items(job)
+            end
+        end
     else
         eventful.onJobInitiated[GLOBAL_KEY] = nil
     end
@@ -134,6 +166,11 @@ dfhack.onStateChange[GLOBAL_KEY] = function(sc)
         load_state()
         if enabled then
             eventful.onJobInitiated[GLOBAL_KEY] = on_new_job
+            for _, job in utils.listpairs(df.global.world.jobs.list) do
+                if job.job_type == df.job_type.StoreItemInStockpile and wheelbarrow_needs_reset(job) then
+                    clear_job_items(job)
+                end
+            end
         end
     end
 end
