@@ -12,6 +12,9 @@ debug_enabled = debug_enabled or false
 radius = radius or 10
 max_items = max_items or 10
 
+-- forward declaration for function defined below
+local emptyContainedItems
+
 function isEnabled()
     return enabled
 end
@@ -61,36 +64,40 @@ local function add_nearby_items(job)
 end
 
 local function on_new_job(job)
-	if job.job_type ~= df.job_type.StoreItemInStockpile then return end
+    if job.job_type ~= df.job_type.StoreItemInStockpile then return end
+
     add_nearby_items(job)
-	for _,jitem in ipairs(job.items) do
-        if jitem.item and (dfhack.items.getCapacity(jitem.item)>0) then
+
+    local container
+    for _, jitem in ipairs(job.items) do
+        if jitem.item and (dfhack.items.getCapacity(jitem.item) > 0) then
             container = jitem.item
             break
         end
     end
-    if not container then return 
-	else emptyContainedItems(container) 
-	end
+
+    if container then
+        emptyContainedItems(container)
+    end
 end
 
 local function emptyContainedItems(wheelbarrow)
-    if debug_enabled and count > 0 then
-        dfhack.gui.showAnnouncement('multihaul: trying to empty the wheelbarrow',COLOR_CYAN)
-    end
     local items = dfhack.items.getContainedItems(wheelbarrow)
     if #items == 0 then return end
-    e_count = e_count + 1
-    for _,item in ipairs(items) do
-            if item.flags.in_job then
-                local job_ref = dfhack.items.getSpecificRef(item, df.specific_ref_type.JOB)
-                if job_ref then
-                    dfhack.job.removeJob(job_ref.data.job)
-                end
+
+    if debug_enabled then
+        dfhack.gui.showAnnouncement('multihaul: emptying wheelbarrow', COLOR_CYAN)
+    end
+
+    for _, item in ipairs(items) do
+        if item.flags.in_job then
+            local job_ref = dfhack.items.getSpecificRef(item, df.specific_ref_type.JOB)
+            if job_ref then
+                dfhack.job.removeJob(job_ref.data.job)
             end
-            dfhack.items.moveToGround(item, wheelbarrow.pos)
-        i_count = i_count + 1
-end
+        end
+        dfhack.items.moveToGround(item, wheelbarrow.pos)
+    end
 end
 
 local function enable(state)
