@@ -11,6 +11,8 @@ performing hauling jobs with a wheelbarrow. When enabled, new
 they can be hauled in a single trip. The script only triggers when a
 wheelbarrow is definitively attached to the job. By default, up to four
 additional items within one tile of the original item are collected.
+Jobs with wheelbarrows that are not assigned as push vehicles are ignored and
+any stuck hauling jobs are automatically cleared.
 
 Usage
 -----
