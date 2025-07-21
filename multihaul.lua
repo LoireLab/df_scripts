@@ -75,11 +75,13 @@ local function on_new_job(job)
 end
 
 local function emptyContainedItems(wheelbarrow)
+    if debug_enabled and count > 0 then
+        dfhack.gui.showAnnouncement('multihaul: trying to empty the wheelbarrow',COLOR_CYAN)
+    end
     local items = dfhack.items.getContainedItems(wheelbarrow)
     if #items == 0 then return end
     e_count = e_count + 1
     for _,item in ipairs(items) do
-        if not dryrun then
             if item.flags.in_job then
                 local job_ref = dfhack.items.getSpecificRef(item, df.specific_ref_type.JOB)
                 if job_ref then
@@ -87,9 +89,8 @@ local function emptyContainedItems(wheelbarrow)
                 end
             end
             dfhack.items.moveToGround(item, wheelbarrow.pos)
-        end
         i_count = i_count + 1
-    end
+end
 end
 
 local function enable(state)
