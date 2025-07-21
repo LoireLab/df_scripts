@@ -32,11 +32,13 @@ Template for new versions:
 
 ## New Features
 - `multihaul`: add multiple items to a single haul job with wheelbarrow
+- `multihaul`: ignore items that are already stored in stockpiles
 
 ## Fixes
 - `gui/journal`: fix typo which caused the table of contents to always be regenerated even when not needed
 - `gui/mod-manager`: gracefully handle mods with missing or broken ``info.txt`` files
 - `uniform-unstick`: resolve overlap with new buttons in 51.13
+- `multihaul`: add command to finish stuck hauling jobs without wheelbarrows
 
 ## Misc Improvements
 
