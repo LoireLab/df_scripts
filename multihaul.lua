@@ -11,7 +11,7 @@ enabled = enabled or false
 debug_enabled = debug_enabled or false
 radius = radius or 10
 max_items = max_items or 10
-mode = mode or 'any'
+mode = mode or 'sametype'
 
 function isEnabled()
     return enabled
@@ -33,7 +33,7 @@ local function load_state()
     debug_enabled = data.debug_enabled or false
     radius = data.radius or 10
     max_items = data.max_items or 10
-    mode = data.mode or 'any'
+    mode = data.mode or 'sametype'
 end
 
 local function get_job_stockpile(job)
@@ -75,7 +75,6 @@ local function add_nearby_items(job)
         if it ~= target and not it.flags.in_job and it.flags.on_ground and
                 it.pos.z == z and math.abs(it.pos.x - x) <= radius and
                 math.abs(it.pos.y - y) <= radius and
-                dfhack.buildings.isItemAllowedInStockpile(it, stockpile) and
                 matches(it) then
             dfhack.job.attachJobItem(job, it, df.job_role_type.Hauled, -1, -1)
             count = count + 1
