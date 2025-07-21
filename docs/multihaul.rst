@@ -7,9 +7,10 @@ multihaul
 
 This tool allows dwarves to collect several adjacent items at once when
 performing hauling jobs with a wheelbarrow. When enabled, new
-``StoreItemInStockpile`` jobs will automatically attach nearby items so they can
-be hauled in a single trip. By default, up to four additional items within one
-tile of the original item are collected.
+``StoreItemInStockpile`` jobs will automatically attach identical nearby items so
+they can be hauled in a single trip. The script only triggers when a
+wheelbarrow is definitively attached to the job. By default, up to four
+additional items within one tile of the original item are collected.
 
 Usage
 -----

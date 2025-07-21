@@ -33,6 +33,11 @@ local function load_state()
     max_items = data.max_items or 10
 end
 
+local function items_identical(a, b)
+    return a:getType() == b:getType() and a:getSubtype() == b:getSubtype() and
+        a.mat_type == b.mat_type and a.mat_index == b.mat_index
+end
+
 local function add_nearby_items(job)
     if #job.items == 0 then return end
 
@@ -43,7 +48,9 @@ local function add_nearby_items(job)
 
     local count = 0
     for _,it in ipairs(df.global.world.items.other.IN_PLAY) do
-        if it ~= target and not it.flags.in_job and it.flags.on_ground and it.pos.z == z and math.abs(it.pos.x - x) <= radius and math.abs(it.pos.y - y) <= radius then
+        if it ~= target and not it.flags.in_job and it.flags.on_ground and
+                it.pos.z == z and math.abs(it.pos.x - x) <= radius and
+                math.abs(it.pos.y - y) <= radius and items_identical(it, target) then
             dfhack.job.attachJobItem(job, it, df.job_role_type.Hauled, -1, -1)
             count = count + 1
             if debug_enabled then
@@ -79,17 +86,22 @@ local function emptyContainedItems(wheelbarrow)
     end
 end
 
+local function find_attached_wheelbarrow(job)
+    for _, jitem in ipairs(job.items) do
+        local item = jitem.item
+        if item and df.item_toolst:is_instance(item) and item:isWheelbarrow() then
+            local ref = dfhack.items.getSpecificRef(item, df.specific_ref_type.JOB)
+            if ref and ref.data.job == job then
+                return item
+            end
+        end
+    end
+end
+
 local function on_new_job(job)
     if job.job_type ~= df.job_type.StoreItemInStockpile then return end
 
-    local wheelbarrow
-    for _, jitem in ipairs(job.items) do
-        if jitem.item and df.item_toolst:is_instance(jitem.item) and jitem.item:isWheelbarrow() then
-            wheelbarrow = jitem.item
-            break
-        end
-    end
-
+    local wheelbarrow = find_attached_wheelbarrow(job)
     if not wheelbarrow then return end
 
     add_nearby_items(job)
