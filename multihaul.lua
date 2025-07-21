@@ -7,33 +7,29 @@ local utils = require('utils')
 
 local GLOBAL_KEY = 'multihaul'
 
-enabled = enabled or false
-debug_enabled = debug_enabled or false
-radius = radius or 10
-max_items = max_items or 10
-mode = mode or 'sametype'
+local function get_default_state()
+    return {
+        enabled=false,
+        debug_enabled=false,
+        radius=10,
+        max_items=10,
+        mode='sametype',
+    }
+end
+
+state = state or get_default_state()
 
 function isEnabled()
-    return enabled
+    return state.enabled
 end
 
 local function persist_state()
-    dfhack.persistent.saveSiteData(GLOBAL_KEY, {
-        enabled=enabled,
-        debug_enabled=debug_enabled,
-        radius=radius,
-        max_items=max_items,
-        mode=mode,
-    })
+    dfhack.persistent.saveSiteData(GLOBAL_KEY, state)
 end
 
 local function load_state()
-    local data = dfhack.persistent.getSiteData(GLOBAL_KEY, {})
-    enabled = data.enabled or false
-    debug_enabled = data.debug_enabled or false
-    radius = data.radius or 10
-    max_items = data.max_items or 10
-    mode = data.mode or 'sametype'
+    state = get_default_state()
+    utils.assign(state, dfhack.persistent.getSiteData(GLOBAL_KEY, state))
 end
 
 local function get_job_stockpile(job)
@@ -65,13 +61,13 @@ local function add_nearby_items(job)
     if not x then return end
 
     local function matches(it)
-        if mode == 'identical' then
+        if state.mode == 'identical' then
             return items_identical(it, target)
-        elseif mode == 'sametype' then
+        elseif state.mode == 'sametype' then
             return items_sametype(it, target)
-        elseif mode == 'samesubtype' then
+        elseif state.mode == 'samesubtype' then
             return items_samesubtype(it, target)
-		else
+        else
             return true
         end
     end
@@ -79,18 +75,18 @@ local function add_nearby_items(job)
     local count = 0
     for _,it in ipairs(df.global.world.items.other.IN_PLAY) do
         if it ~= target and not it.flags.in_job and it.flags.on_ground and
-                it.pos.z == z and math.abs(it.pos.x - x) <= radius and
-                math.abs(it.pos.y - y) <= radius and
+                it.pos.z == z and math.abs(it.pos.x - x) <= state.radius and
+                math.abs(it.pos.y - y) <= state.radius and
                 matches(it) then
             dfhack.job.attachJobItem(job, it, df.job_role_type.Hauled, -1, -1)
             count = count + 1
-            if debug_enabled then
+            if state.debug_enabled then
                 dfhack.gui.showAnnouncement(
                     ('multihaul: added %s to hauling job of %s'):format(
                         dfhack.items.getDescription(it, 0), dfhack.items.getDescription(target, 0)),
                     COLOR_CYAN)
             end
-            if count >= max_items then break end
+            if count >= state.max_items then break end
         end
     end
 end
@@ -99,7 +95,7 @@ local function emptyContainedItems(wheelbarrow)
     local items = dfhack.items.getContainedItems(wheelbarrow)
     if #items == 0 then return end
 
-    if debug_enabled then
+    if state.debug_enabled then
         dfhack.gui.showAnnouncement('multihaul: emptying wheelbarrow', COLOR_CYAN)
     end
 
@@ -115,7 +111,7 @@ local function emptyContainedItems(wheelbarrow)
 end
 
 local function clear_job_items(job)
-    if debug_enabled then
+    if state.debug_enabled then
         dfhack.gui.showAnnouncement('multihaul: clearing stuck hauling job', COLOR_CYAN)
     end
     job.items:resize(0)
@@ -146,9 +142,9 @@ local function on_new_job(job)
     emptyContainedItems(wheelbarrow)
 end
 
-local function enable(state)
-    enabled = state
-    if enabled then
+local function enable(val)
+    state.enabled = val
+    if state.enabled then
         eventful.onJobInitiated[GLOBAL_KEY] = on_new_job
     else
         eventful.onJobInitiated[GLOBAL_KEY] = nil
@@ -164,7 +160,7 @@ end
 
 dfhack.onStateChange[GLOBAL_KEY] = function(sc)
     if sc == SC_MAP_UNLOADED then
-        enabled = false
+        state.enabled = false
         eventful.onJobInitiated[GLOBAL_KEY] = nil
         return
     end
@@ -192,20 +188,20 @@ local function parse_options(start_idx)
     while i <= #args do
         local a = args[i]
         if a == '--debug' then
-            debug_enabled = true
+            state.debug_enabled = true
         elseif a == '--no-debug' then
-            debug_enabled = false
+            state.debug_enabled = false
         elseif a == '--radius' then
             i = i + 1
-            radius = tonumber(args[i]) or radius
+            state.radius = tonumber(args[i]) or state.radius
         elseif a == '--max-items' then
             i = i + 1
-            max_items = tonumber(args[i]) or max_items
+            state.max_items = tonumber(args[i]) or state.max_items
         elseif a == '--mode' then
             i = i + 1
             local m = args[i]
             if m == 'any' or m == 'sametype' or m == 'samesubtype' or m == 'identical' then
-                mode = m
+                state.mode = m
             else
                 qerror('invalid mode: ' .. tostring(m))
             end
@@ -221,14 +217,14 @@ if cmd == 'enable' then
 elseif cmd == 'disable' then
     enable(false)
 elseif cmd == 'status' or not cmd then
-    print((enabled and 'multihaul is enabled' or 'multihaul is disabled'))
+    print((state.enabled and 'multihaul is enabled' or 'multihaul is disabled'))
     print(('radius=%d max-items=%d mode=%s debug=%s')
-          :format(radius, max_items, mode, debug_enabled and 'on' or 'off'))
+          :format(state.radius, state.max_items, state.mode, state.debug_enabled and 'on' or 'off'))
 elseif cmd == 'config' then
     parse_options(2)
     persist_state()
     print(('multihaul config: radius=%d max-items=%d mode=%s debug=%s')
-          :format(radius, max_items, mode, debug_enabled and 'on' or 'off'))
+          :format(state.radius, state.max_items, state.mode, state.debug_enabled and 'on' or 'off'))
 else
     qerror('Usage: multihaul [enable|disable|status|config] [--radius N] [--max-items N] [--mode MODE] [--debug|--no-debug]')
 end
