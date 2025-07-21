@@ -33,6 +33,11 @@ local function load_state()
     max_items = data.max_items or 10
 end
 
+local function get_job_stockpile(job)
+    local ref = dfhack.job.getGeneralRef(job, df.general_ref_type.BUILDING_HOLDER)
+    return ref and df.building.find(ref.building_id) or nil
+end
+
 local function items_identical(a, b)
     return a:getType() == b:getType() and a:getSubtype() == b:getSubtype() and
         a.mat_type == b.mat_type and a.mat_index == b.mat_index
@@ -43,6 +48,8 @@ local function add_nearby_items(job)
 
     local target = job.items[0].item
     if not target then return end
+    local stockpile = get_job_stockpile(job)
+    if not stockpile then return end
     local x,y,z = dfhack.items.getPosition(target)
     if not x then return end
 
@@ -50,8 +57,9 @@ local function add_nearby_items(job)
     for _,it in ipairs(df.global.world.items.other.IN_PLAY) do
         if it ~= target and not it.flags.in_job and it.flags.on_ground and
                 it.pos.z == z and math.abs(it.pos.x - x) <= radius and
-                math.abs(it.pos.y - y) <= radius --and items_identical(it, target)
-				then
+                math.abs(it.pos.y - y) <= radius and
+                dfhack.buildings.isItemAllowedInStockpile(it, stockpile) --and items_identical(it, target)
+                                then
             dfhack.job.attachJobItem(job, it, df.job_role_type.Hauled, -1, -1)
             count = count + 1
             if debug_enabled then

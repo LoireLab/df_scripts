@@ -13,6 +13,7 @@ wheelbarrow is definitively attached to the job. By default, up to four
 additional items within one tile of the original item are collected.
 Jobs with wheelbarrows that are not assigned as push vehicles are ignored and
 any stuck hauling jobs are automatically cleared.
+Only items that match the destination stockpile filters are added to the job.
 
 Usage
 -----
