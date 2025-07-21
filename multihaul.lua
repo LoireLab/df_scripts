@@ -12,9 +12,6 @@ debug_enabled = debug_enabled or false
 radius = radius or 10
 max_items = max_items or 10
 
--- forward declaration for function defined below
-local emptyContainedItems
-
 function isEnabled()
     return enabled
 end
@@ -63,24 +60,6 @@ local function add_nearby_items(job)
     end
 end
 
-local function on_new_job(job)
-    if job.job_type ~= df.job_type.StoreItemInStockpile then return end
-
-    add_nearby_items(job)
-
-    local container
-    for _, jitem in ipairs(job.items) do
-        if jitem.item and (dfhack.items.getCapacity(jitem.item) > 0) then
-            container = jitem.item
-            break
-        end
-    end
-
-    if container then
-        emptyContainedItems(container)
-    end
-end
-
 local function emptyContainedItems(wheelbarrow)
     local items = dfhack.items.getContainedItems(wheelbarrow)
     if #items == 0 then return end
@@ -97,6 +76,24 @@ local function emptyContainedItems(wheelbarrow)
             end
         end
         dfhack.items.moveToGround(item, wheelbarrow.pos)
+    end
+end
+
+local function on_new_job(job)
+    if job.job_type ~= df.job_type.StoreItemInStockpile then return end
+
+    add_nearby_items(job)
+
+    local container
+    for _, jitem in ipairs(job.items) do
+        if jitem.item and (dfhack.items.getCapacity(jitem.item) > 0) then
+            container = jitem.item
+            break
+        end
+    end
+
+    if container then
+        emptyContainedItems(container)
     end
 end
 
