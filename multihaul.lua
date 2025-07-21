@@ -1,4 +1,4 @@
--- Allow haulers to pick up multiple nearby items when using bags or wheelbarrows
+-- Allow haulers to pick up multiple nearby items when using wheelbarrows
 --@module = true
 --@enable = true
 
@@ -82,19 +82,18 @@ end
 local function on_new_job(job)
     if job.job_type ~= df.job_type.StoreItemInStockpile then return end
 
-    add_nearby_items(job)
-
-    local container
+    local wheelbarrow
     for _, jitem in ipairs(job.items) do
-        if jitem.item and (dfhack.items.getCapacity(jitem.item) > 0) then
-            container = jitem.item
+        if jitem.item and df.item_toolst:is_instance(jitem.item) and jitem.item:isWheelbarrow() then
+            wheelbarrow = jitem.item
             break
         end
     end
 
-    if container then
-        emptyContainedItems(container)
-    end
+    if not wheelbarrow then return end
+
+    add_nearby_items(job)
+    emptyContainedItems(wheelbarrow)
 end
 
 local function enable(state)
