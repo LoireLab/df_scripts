@@ -98,6 +98,7 @@ local function add_nearby_items(job)
     end
     
     local abs = math.abs
+	local count = 0
     for _,it in ipairs(df.global.world.items.other.IN_PLAY) do
         if it ~= target and not it.flags.in_job and it.flags.on_ground and
                 it.pos.z == z and abs(it.pos.x - x) <= state.radius and
@@ -106,6 +107,7 @@ local function add_nearby_items(job)
                 not is_stockpiled(it) and
                 matches(it) then
             dfhack.job.attachJobItem(job, it, df.job_role_type.Hauled, -1, -1)
+			count = count + 1
             if state.debug_enabled then
                 dfhack.gui.showAnnouncement(
                     ('multihaul: added %s to hauling job of %s'):format(
