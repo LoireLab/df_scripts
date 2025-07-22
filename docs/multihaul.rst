@@ -7,12 +7,10 @@ multihaul
 
 This tool allows dwarves to collect several adjacent items at once when
 performing hauling jobs with a wheelbarrow. When enabled, new
-``StoreItemInStockpile`` jobs will automatically attach nearby items so
-they can be hauled in a single trip. Items claimed by another jobs would be ignored.
-Items that are already stored in stockpiles are ignored.
-The script only triggers when a wheelbarrow is
-definitively attached to the job. By default, up to ten additional items within
-10 tiles of the original item are collected.
+``StoreItemInStockpile`` jobs with wheelbarrows will automatically attach nearby items so
+they can be hauled in a single trip. Jobs without wheelbarrows would try to attach one if autowheelbarrows option is on.
+Items claimed by another jobs or already stored in stockpiles would be ignored.
+By default, up to ten additional items within 10 tiles of the original item are collected.
 Warning: Destination stockpile filters are currently ignored by the job (because of DF logic). Which items qualify can be controlled
 with the ``--mode`` option.
 Basic usage of wheelbarrows remains the same: dwarfs would use them only if hauling item is heavier than 75
@@ -26,10 +24,8 @@ Usage
     multihaul disable
     multihaul status
     multihaul config [<options>]
-    multihaul finishjobs
 
 The script can also be enabled persistently with ``enable multihaul``.
-finishjobs is an additional command to find and cancel all broken jobs, related to multihaul
 
 Options
 -------
