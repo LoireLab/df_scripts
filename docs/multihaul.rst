@@ -45,8 +45,8 @@ Options
     ``sametype`` only matches the item type (like STONE or WOOD), ``samesubtype`` requires type and
     subtype to match, and ``identical`` additionally matches material. The
     default is ``sametype``.
-``--autocancel <on|off|enable|disable>``
-    Auto run finishjobs from time to time.
+``--autowheelbarrows <on|off|enable|disable>``
+    Automatically assign wheelbarrows to jobs that lack them.
 ``--debug <on|off|enable|disable>``
     Show debug messages via ``dfhack.gui.showAnnouncement`` when items are
     attached.
