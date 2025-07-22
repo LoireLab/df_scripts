@@ -34,6 +34,26 @@ local function load_state()
     utils.assign(state, dfhack.persistent.getSiteData(GLOBAL_KEY, state))
 end
 
+local function for_each_item_in_radius(x, y, z, radius, fn)
+    local xmin = math.max(0, x - radius)
+    local xmax = math.min(df.global.world.map.x_count - 1, x + radius)
+    local ymin = math.max(0, y - radius)
+    local ymax = math.min(df.global.world.map.y_count - 1, y + radius)
+    local bxmin, bxmax = math.floor(xmin/16), math.floor(xmax/16)
+    local bymin, bymax = math.floor(ymin/16), math.floor(ymax/16)
+    for by = bymin, bymax do
+        for bx = bxmin, bxmax do
+            local block = dfhack.maps.getTileBlock(bx*16, by*16, z)
+            if block then
+                for _, id in ipairs(block.items) do
+                    local item = df.item.find(id)
+                    if item and fn(item) then return end
+                end
+            end
+        end
+    end
+end
+
 local function get_job_stockpile(job)
     local ref = dfhack.job.getGeneralRef(job, df.general_ref_type.BUILDING_HOLDER)
     return ref and df.building.find(ref.building_id) or nil
@@ -97,26 +117,22 @@ local function add_nearby_items(job)
         end
     end
     
-	local count = 0
-    for _,it in ipairs(df.global.world.items.other.IN_PLAY) do
+    local count = 0
+    for_each_item_in_radius(x, y, z, state.radius, function(it)
         if it ~= target and not it.flags.in_job and it.flags.on_ground and
-                it.pos.z == z and math.abs(it.pos.x - x) <= state.radius and
-				not it:isWheelbarrow() and
-				not dfhack.items.isRouteVehicle(it) and
-                math.abs(it.pos.y - y) <= state.radius and
-                not is_stockpiled(it) and
-                matches(it) then
+                not it:isWheelbarrow() and not dfhack.items.isRouteVehicle(it) and
+                not is_stockpiled(it) and matches(it) then
             dfhack.job.attachJobItem(job, it, df.job_role_type.Hauled, -1, -1)
-			count = count + 1 
+            count = count + 1
             if state.debug_enabled then
                 dfhack.gui.showAnnouncement(
                     ('multihaul: added %s to hauling job of %s'):format(
                         dfhack.items.getDescription(it, 0), dfhack.items.getDescription(target, 0)),
                     COLOR_CYAN)
             end
-            if count >= state.max_items then break end
+            if count >= state.max_items then return true end
         end
-    end
+    end)
 end
 
 local function find_attached_wheelbarrow(job)
