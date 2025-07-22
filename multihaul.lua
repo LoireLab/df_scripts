@@ -15,7 +15,7 @@ local function get_default_state()
         radius=10,
         max_items=10,
         mode='sametype',
-        autocancel=true
+		autocancel=true
     }
 end
 
@@ -52,6 +52,25 @@ local function items_samesubtype(a, b)
     return a:getType() == b:getType() and a:getSubtype() == b:getSubtype()
 end
 
+local function emptyContainedItems(wheelbarrow)
+    local items = dfhack.items.getContainedItems(wheelbarrow)
+    if #items == 0 then return end
+
+    if state.debug_enabled then
+        dfhack.gui.showAnnouncement('multihaul: emptying wheelbarrow', COLOR_CYAN)
+    end
+
+    for _, item in ipairs(items) do
+        if item.flags.in_job then
+            local job_ref = dfhack.items.getSpecificRef(item, df.specific_ref_type.JOB)
+            if job_ref then
+                dfhack.job.removeJob(job_ref.data.job)
+            end
+        end
+        dfhack.items.moveToGround(item, wheelbarrow.pos)
+    end
+end
+
 local function add_nearby_items(job)
     if #job.items == 0 then return end
 
@@ -82,7 +101,8 @@ local function add_nearby_items(job)
     for _,it in ipairs(df.global.world.items.other.IN_PLAY) do
         if it ~= target and not it.flags.in_job and it.flags.on_ground and
                 it.pos.z == z and math.abs(it.pos.x - x) <= state.radius and
-                not it:isWheelbarrow() and
+				not df.item_toolst:is_instance(item) and
+				--not it._type == df.vehicle_minecartst and
                 math.abs(it.pos.y - y) <= state.radius and
                 not is_stockpiled(it) and
                 matches(it) then
@@ -102,7 +122,7 @@ end
 local function find_attached_wheelbarrow(job)
     for _, jitem in ipairs(job.items) do
         local item = jitem.item
-        if item and df.item_toolst:is_instance(item) and item:isWheelbarrow() then
+        if item and item:isWheelbarrow() then
             if jitem.role ~= df.job_role_type.PushHaulVehicle then
                 return nil
             end
@@ -114,44 +134,41 @@ local function find_attached_wheelbarrow(job)
     end
 end
 
-local function finish_jobs_without_wheelbarrow()
-    local count = 0
-    for _, job in utils.listpairs(df.global.world.jobs.list) do
-        if job.job_type == df.job_type.StoreItemInStockpile and
-                #job.items > 1 and not find_attached_wheelbarrow(job) then
-            clear_job_items(job)
-            job.completion_timer = 0
-            count = count + 1
-        end
-    end
-    return count
-end
-
-local function emptyContainedItems(wheelbarrow)
-    local items = dfhack.items.getContainedItems(wheelbarrow)
-    if #items == 0 then return end
-
-    if state.debug_enabled then
-        dfhack.gui.showAnnouncement('multihaul: emptying wheelbarrow', COLOR_CYAN)
-    end
+local function find_free_wheelbarrow(stockpile)
+    if not df.building_stockpilest:is_instance(stockpile) then return nil end
+    local abs = math.abs
+    local items = df.global.world.items.other.TOOL
+    local sx, sy, sz = stockpile.centerx, stockpile.centery, stockpile.z
+    local max_radius = state.radius or 10
 
     for _, item in ipairs(items) do
-        if item.flags.in_job then
-            local job_ref = dfhack.items.getSpecificRef(item, df.specific_ref_type.JOB)
-            if job_ref then
-                dfhack.job.removeJob(job_ref.data.job)
+        if item and item:isWheelbarrow() and not item.flags.in_job then
+            local pos = item.pos
+            local ix, iy, iz = pos.x, pos.y, pos.z
+            if ix and iy and iz and iz == sz then
+                local dx = abs(ix - sx)
+                local dy = abs(iy - sy)
+                if dx <= max_radius and dy <= max_radius then
+                    return item
+                end
             end
         end
-        dfhack.items.moveToGround(item, wheelbarrow.pos)
-        if state.autocancel then
-            local count = finish_jobs_without_wheelbarrow()
-            if count > 0 then
-                dfhack.gui.showAnnouncement(
-                    string.format('multihaul: finished %d StoreItemInStockpile job', count),
-                    COLOR_CYAN
-                )
-            end
-        end
+    end
+    return nil
+end
+
+
+local function attach_free_wheelbarrow(job)
+    local stockpile = get_job_stockpile(job)
+    if not stockpile then return nil end
+    local wheelbarrow = find_free_wheelbarrow(stockpile)
+    if not wheelbarrow then return nil end
+    if dfhack.job.attachJobItem(job, wheelbarrow,
+            df.job_role_type.PushHaulVehicle, -1, -1) then
+		if state.debug_enabled then
+			dfhack.gui.showAnnouncement('multihaul: adding wheelbarrow to a job', COLOR_CYAN)
+		end
+        return wheelbarrow
     end
 end
 
@@ -162,10 +179,26 @@ local function clear_job_items(job)
     job.items:resize(0)
 end
 
+local function finish_jobs_without_wheelbarrow()
+    local count = 0
+	local wheelbarrow
+    for _, job in utils.listpairs(df.global.world.jobs.list) do
+        if job.job_type == df.job_type.StoreItemInStockpile and
+                #job.items > 1 and not find_attached_wheelbarrow(job) then
+				wheelbarrow = attach_free_wheelbarrow(job)
+				on_new_job(job)
+        end
+    end
+    return count
+end
+
 local function on_new_job(job)
     if job.job_type ~= df.job_type.StoreItemInStockpile then return end
 
     local wheelbarrow = find_attached_wheelbarrow(job)
+	if not wheelbarrow then
+        wheelbarrow = attach_free_wheelbarrow(job)
+    end
     if not wheelbarrow then return end
 
     add_nearby_items(job)
