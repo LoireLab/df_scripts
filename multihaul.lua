@@ -72,6 +72,18 @@ local function items_samesubtype(a, b)
     return a:getType() == b:getType() and a:getSubtype() == b:getSubtype()
 end
 
+local match_fns = {
+    any = function() return true end,
+    identical = items_identical,
+    sametype = items_sametype,
+    samesubtype = items_samesubtype,
+}
+
+local function items_match(a, b)
+    local fn = match_fns[state.mode] or match_fns.sametype
+    return fn(a, b)
+end
+
 local function emptyContainedItems(wheelbarrow)
     local items = dfhack.items.getContainedItems(wheelbarrow)
     if #items == 0 then return end
@@ -106,17 +118,9 @@ local function add_nearby_items(job)
     local is_stockpiled = cond[1]
 
     local function matches(it)
-        if state.mode == 'identical' then
-            return items_identical(it, target)
-        elseif state.mode == 'sametype' then
-            return items_sametype(it, target)
-        elseif state.mode == 'samesubtype' then
-            return items_samesubtype(it, target)
-        else
-            return true
-        end
+        return items_match(it, target)
     end
-    
+
     local count = 0
     for_each_item_in_radius(x, y, z, state.radius, function(it)
         if it ~= target and not it.flags.in_job and it.flags.on_ground and
@@ -152,25 +156,15 @@ end
 
 local function find_free_wheelbarrow(stockpile)
     if not df.building_stockpilest:is_instance(stockpile) then return nil end
-    local abs = math.abs
-    local items = df.global.world.items.other.TOOL
     local sx, sy, sz = stockpile.centerx, stockpile.centery, stockpile.z
-    local max_radius = state.radius or 10
-
-    for _, item in ipairs(items) do
-        if item and item:isWheelbarrow() and not item.flags.in_job then
-            local pos = item.pos
-            local ix, iy, iz = pos.x, pos.y, pos.z
-            if ix and iy and iz and iz == sz then
-                local dx = abs(ix - sx)
-                local dy = abs(iy - sy)
-                if dx <= max_radius and dy <= max_radius then
-                    return item
-                end
-            end
+    local found
+    for_each_item_in_radius(sx, sy, sz, state.radius or 10, function(it)
+        if it:isWheelbarrow() and not it.flags.in_job then
+            found = it
+            return true
         end
-    end
-    return nil
+    end)
+    return found
 end
 
 
