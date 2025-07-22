@@ -114,6 +114,37 @@ local function find_attached_wheelbarrow(job)
     end
 end
 
+local function find_free_wheelbarrow(stockpile)
+    local bld = df.building_stockpilest:is_instance(stockpile) and stockpile or nil
+    if not bld then return nil end
+
+    local storage = bld.storage
+    if not storage then return nil end
+
+    for idx, item_id in ipairs(storage.container_item_id) do
+        if item_id ~= -1 and storage.container_type[idx] == df.item_type.TOOL then
+            local item = df.item.find(item_id)
+            if item and df.item_toolst:is_instance(item) and item:isWheelbarrow() and not item.flags.in_job then
+                local ref = dfhack.items.getGeneralRef(item, df.general_ref_type.BUILDING_HOLDER)
+                if ref and ref.building_id == stockpile.id then
+                    return item
+                end
+            end
+        end
+    end
+end
+
+local function attach_free_wheelbarrow(job)
+    local stockpile = get_job_stockpile(job)
+    if not stockpile then return nil end
+    local wheelbarrow = find_free_wheelbarrow(stockpile)
+    if not wheelbarrow then return nil end
+    if dfhack.job.attachJobItem(job, wheelbarrow,
+            df.job_role_type.PushHaulVehicle, -1, -1) then
+        return wheelbarrow
+    end
+end
+
 local function finish_jobs_without_wheelbarrow()
     local count = 0
     for _, job in utils.listpairs(df.global.world.jobs.list) do
@@ -166,6 +197,9 @@ local function on_new_job(job)
     if job.job_type ~= df.job_type.StoreItemInStockpile then return end
 
     local wheelbarrow = find_attached_wheelbarrow(job)
+    if not wheelbarrow then
+        wheelbarrow = attach_free_wheelbarrow(job)
+    end
     if not wheelbarrow then return end
 
     add_nearby_items(job)

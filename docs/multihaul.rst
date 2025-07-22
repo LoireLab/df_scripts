@@ -10,6 +10,8 @@ performing hauling jobs with a wheelbarrow. When enabled, new
 ``StoreItemInStockpile`` jobs will automatically attach nearby items so
 they can be hauled in a single trip. Items claimed by another jobs would be ignored.
 Items that are already stored in stockpiles are ignored.
+If the target stockpile has a free assigned wheelbarrow, it is automatically
+attached to the job before additional items are gathered.
 The script only triggers when a wheelbarrow is
 definitively attached to the job. By default, up to ten additional items within
 10 tiles of the original item are collected.
