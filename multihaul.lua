@@ -144,7 +144,7 @@ local function find_attached_wheelbarrow(job)
         local item = jitem.item
         if item and item:isWheelbarrow() then
             if jitem.role ~= df.job_role_type.PushHaulVehicle then
-                return nil
+                return 'badrole'
             end
             local ref = dfhack.items.getSpecificRef(item, df.specific_ref_type.JOB)
             if ref and ref.data.job == job then
@@ -152,13 +152,14 @@ local function find_attached_wheelbarrow(job)
             end
         end
     end
+    return nil
 end
 
 local function find_free_wheelbarrow(stockpile)
     if not df.building_stockpilest:is_instance(stockpile) then return nil end
     local sx, sy, sz = stockpile.centerx, stockpile.centery, stockpile.z
     local found
-    for_each_item_in_radius(sx, sy, sz, state.radius or 10, function(it)
+    for_each_item_in_radius(sx, sy, sz, state.radius*10 or 100, function(it)
         if it:isWheelbarrow() and not it.flags.in_job then
             found = it
             return true
@@ -191,13 +192,13 @@ end
 
 local function on_new_job(job)
     if job.job_type ~= df.job_type.StoreItemInStockpile then return end
-
     local wheelbarrow = find_attached_wheelbarrow(job)
+    if wheelbarrow == 'badrole' then return
+    end
     if not wheelbarrow then
         wheelbarrow = attach_free_wheelbarrow(job)
     end
     if not wheelbarrow then return end
-
     add_nearby_items(job)
     emptyContainedItems(wheelbarrow)
 end
