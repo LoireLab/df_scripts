@@ -13,6 +13,7 @@ local function get_default_state()
         enabled=false,
         debug_enabled=false,
         radius=10,
+        wheelbarrow_search_radius_k=5,
         max_items=10,
         mode='sametype',
         autowheelbarrows=true
@@ -159,7 +160,7 @@ local function find_free_wheelbarrow(stockpile)
     if not df.building_stockpilest:is_instance(stockpile) then return nil end
     local sx, sy, sz = stockpile.centerx, stockpile.centery, stockpile.z
     local found
-    for_each_item_in_radius(sx, sy, sz, state.radius*10 or 100, function(it)
+    for_each_item_in_radius(sx, sy, sz, state.radius*wheelbarrow_search_radius_k or 10*wheelbarrow_search_radius_k, function(it)
         if it:isWheelbarrow() and not it.flags.in_job then
             found = it
             return true
