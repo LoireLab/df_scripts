@@ -1,5 +1,5 @@
 -- Assign trinkets to citizens so they can satisfy the "Acquire Object" need.
--- Derived from an old Bay12 forums script and updated for modern DFHack.
+-- Derived from github.com/skeldark/scripts and updated for modern DFHack.
 --@module = true
 
 local help = [=[
