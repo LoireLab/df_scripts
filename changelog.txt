@@ -17,8 +17,6 @@ Template for new versions:
 ## New Features
 
 ## Fixes
-- `gui/gm-unit`: remove reference to ``think_counter``, removed in v51.12
-- fixed references to removed ``unit.curse`` compound
 
 ## Misc Improvements
 
@@ -29,11 +27,40 @@ Template for new versions:
 # Future
 
 ## New Tools
-
-## New Features
 - `multihaul`: add multiple items to a single haul job with wheelbarrow
 
+## New Features
+- `gui/mod-manager`: now supports arena mode
+
 ## Fixes
+- `gui/mod-manager`: gracefully handle vanilla mods with different versions from the user's preset
+
+## Misc Improvements
+
+## Removed
+
+# 52.02-r1
+
+## New Tools
+
+## New Features
+
+## Fixes
+- ``embark-anyone``: validate viewscreen before using, avoids a crash
+
+## Misc Improvements
+
+## Removed
+
+# 52.01-r1
+
+## New Tools
+
+## New Features
+
+## Fixes
+- fixed references to removed ``unit.curse`` compound
+- `gui/gm-unit`: remove reference to ``think_counter``, removed in v51.12
 - `gui/journal`: fix typo which caused the table of contents to always be regenerated even when not needed
 - `gui/mod-manager`: gracefully handle mods with missing or broken ``info.txt`` files
 - `uniform-unstick`: resolve overlap with new buttons in 51.13
