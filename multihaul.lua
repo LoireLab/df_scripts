@@ -8,6 +8,8 @@ local itemtools = reqscript('item')
 
 local GLOBAL_KEY = 'multihaul'
 
+local finish_jobs_without_wheelbarrow -- forward declaration
+
 local function get_default_state()
     return {
         enabled=false,
@@ -192,7 +194,7 @@ local function clear_job_items(job)
     job.items:resize(0)
 end
 
-local function finish_jobs_without_wheelbarrow()
+function finish_jobs_without_wheelbarrow()
     for _, job in utils.listpairs(df.global.world.jobs.list) do
         if job.job_type == df.job_type.StoreItemInStockpile and
                 not find_attached_wheelbarrow(job) then
