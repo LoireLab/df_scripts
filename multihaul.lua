@@ -211,7 +211,7 @@ local function on_new_job(job)
     if not wheelbarrow and state.autowheelbarrows then
         wheelbarrow = attach_free_wheelbarrow(job)
     end
-    if not wheelbarrow or wheelbarrow.flags.in_job then return end
+    if not wheelbarrow then return end
     add_nearby_items(job)
     emptyContainedItems(wheelbarrow)
 end
