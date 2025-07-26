@@ -8,7 +8,7 @@ local itemtools = reqscript('item')
 
 local GLOBAL_KEY = 'multihaul'
 
-local finish_jobs_without_wheelbarrow -- forward declaration
+local finish_jobs_without_wheelbarrow
 
 local function get_default_state()
     return {
@@ -208,10 +208,10 @@ local function on_new_job(job)
     local wheelbarrow = find_attached_wheelbarrow(job)
     if wheelbarrow == 'badrole' then return
     end
-    if not wheelbarrow then
+    if not wheelbarrow and state.autowheelbarrows then
         wheelbarrow = attach_free_wheelbarrow(job)
     end
-    if not wheelbarrow then return end
+    if not wheelbarrow or wheelbarrow.flags.in_job then return end
     add_nearby_items(job)
     emptyContainedItems(wheelbarrow)
 end
@@ -315,8 +315,8 @@ elseif cmd == 'config' then
     persist_state()
     print(('multihaul config: radius=%d max-items=%d mode=%s autowheelbarrows=%s debug=%s')
           :format(state.radius, state.max_items, state.mode, state.autowheelbarrows and 'on' or 'off', state.debug_enabled and 'on' or 'off'))
-elseif cmd == 'finish' then
+elseif cmd == 'unstuckjobs' then
     finish_jobs_without_wheelbarrow()
 else
-    qerror('Usage: multihaul [enable|disable|status|config|finish] [--radius N] [--max-items N] [--mode MODE] [--autowheelbarrows on|off] [--debug on|off]')
+    qerror('Usage: multihaul [enable|disable|status|config|unstuckjobs] [--radius N] [--max-items N] [--mode MODE] [--autowheelbarrows on|off] [--debug on|off]')
 end
