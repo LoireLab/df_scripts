@@ -187,20 +187,27 @@ local function attach_free_wheelbarrow(job)
     end
 end
 
-local function clear_job_items(job)
-    if state.debug_enabled then
-        dfhack.gui.showAnnouncement('multihaul: clearing stuck hauling job', COLOR_CYAN)
-    end
-    job.items:resize(0)
-end
-
 function finish_jobs_without_wheelbarrow()
+    local count = 0
     for _, job in utils.listpairs(df.global.world.jobs.list) do
-        if job.job_type == df.job_type.StoreItemInStockpile and
-                not find_attached_wheelbarrow(job) then
-            dfhack.job.removeJob(job)
+        if job.job_type == df.job_type.StoreItemInStockpile and #job.items > 1 and not find_attached_wheelbarrow(job) then
+            for _, jobitem in ipairs(job.items) do
+                local item = jobitem.item
+                if item and item.flags.in_job then
+                    local ref = dfhack.items.getSpecificRef(item, df.specific_ref_type.JOB)
+                    if ref and ref.data.job == job then
+                        dfhack.job.removeJob(job)
+                    end
+                end
+            end
+            job.items:resize(0)
+            job.completion_timer = 0
+            count = count + 1
         end
     end
+	if count > 0 then 
+	dfhack.gui.showAnnouncement('multihaul: clearing stuck hauling job', COLOR_CYAN)
+	end
 end
 
 local function on_new_job(job)
