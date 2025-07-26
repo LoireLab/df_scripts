@@ -160,7 +160,7 @@ local function find_free_wheelbarrow(stockpile)
     if not df.building_stockpilest:is_instance(stockpile) then return nil end
     local sx, sy, sz = stockpile.centerx, stockpile.centery, stockpile.z
     local found
-    for_each_item_in_radius(sx, sy, sz, state.radius*wheelbarrow_search_radius_k or 10*wheelbarrow_search_radius_k, function(it)
+    for_each_item_in_radius(sx, sy, sz, state.radius*state.wheelbarrow_search_radius_k or 10*state.wheelbarrow_search_radius_k, function(it)
         if it:isWheelbarrow() and not it.flags.in_job then
             found = it
             return true
