@@ -24,8 +24,12 @@ Usage
     multihaul disable
     multihaul status
     multihaul config [<options>]
+    multihaul finish
 
 The script can also be enabled persistently with ``enable multihaul``.
+
+``multihaul finish`` cancels any ``StoreItemInStockpile`` jobs that have lost
+their wheelbarrows, freeing attached items.
 
 Options
 -------
