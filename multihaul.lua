@@ -205,9 +205,9 @@ function finish_jobs_without_wheelbarrow()
             count = count + 1
         end
     end
-	if count > 0 then 
-	dfhack.gui.showAnnouncement('multihaul: clearing stuck hauling job', COLOR_CYAN)
-	end
+    if count > 0 then
+    dfhack.gui.showAnnouncement('multihaul: clearing stuck hauling job', COLOR_CYAN)
+    end
 end
 
 local function on_new_job(job)
